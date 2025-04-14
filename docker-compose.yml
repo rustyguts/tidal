@@ -24,10 +24,9 @@ services:
 
   prefect-process-worker:
     build:
-      target: builder
-      args:
-        GL_TOKEN: $GL_TOKEN
-    command: poetry run watchfiles --filter python "python deploy.py all --environment local" /app
+      context: .
+      dockerfile: Dockerfile
+    command: uv run watchfiles "uv run deploy.py all --environment local" /app
     volumes:
       - ./tidal:/app/tidal
       - ./deploy.py:/app/deploy.py
