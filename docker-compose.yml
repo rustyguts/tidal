@@ -1,17 +1,45 @@
 services:
-  tidal:
-    build:
-      dockerfile: Dockerfile
-    entrypoint: [ "yarn", "start:dev" ]
-    env_file:
-      - .env.production
-    ports:
-      - "5000:5000"
+  prefect-server:
+    image: prefecthq/prefect:3.2.12-python3.12
+    restart: always
+    command: prefect server start
     volumes:
-      - ./src:/usr/local/app/src
-      # - /mnt/shack/media/gaming/tidal_dev:/tidal
-      - /mnt/r2/rustyguts-transcoding:/tidal"
-  redis:
-    image: redis:alpine
+      - prefect-server:/root/.prefect
+    environment:
+      PREFECT_SERVER_API_HOST: "0.0.0.0"
+      PREFECT_UI_URL: http://127.0.0.1:4200/api
+      PREFECT_API_URL: http://127.0.0.1:4200/api
     ports:
-      - "6380:6379"
+      - 4200:4200
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python3 -c ''import urllib.request; urllib.request.urlopen("http://localhost:4200/api/health")''',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 0s
+
+  prefect-process-worker:
+    build:
+      target: builder
+      args:
+        GL_TOKEN: $GL_TOKEN
+    command: poetry run watchfiles --filter python "python deploy.py all --environment local" /app
+    volumes:
+      - ./tidal:/app/tidal
+      - ./deploy.py:/app/deploy.py
+    env_file:
+      - .env
+    depends_on:
+      prefect-server:
+        condition: service_started
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  prefect-server:

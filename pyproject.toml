@@ -1,0 +1,91 @@
+[project]
+name = "tidal"
+version = "0.0.1"
+description = ""
+authors = [
+    {name = "Brendan Kennedy"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = "<3.14,>=3.9"
+dependencies = [
+    "prefect (>=3.3.4,<4.0.0)",
+    "pydantic (>=2.11.3,<3.0.0)",
+    "mypy (>=1.15.0,<2.0.0)",
+    "ruff (>=0.11.5,<0.12.0)",
+    "typer (>=0.15.2,<0.16.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+######################################################################
+# Ruff Config
+######################################################################
+
+[tool.ruff]
+line-length = 120
+indent-width = 1
+exclude = [".git", ".mypy_cache"]
+
+[tool.ruff.lint]
+select = [
+  # no mixed tabs and spaces
+  "E101",
+  # pycodestyle
+  "E",
+  # Pyflakes
+  "F",
+  # pyupgrade
+  "UP",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "tab"
+
+######################################################################
+# Mypy Config
+######################################################################
+
+[tool.mypy]
+# docs: https://mypy.readthedocs.io/en/stable/config_file.html#using-a-pyproject-toml-file
+python_version = "3.10"
+plugins = ["pydantic.mypy"]
+exclude = ['venv', '.venv']
+
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+module = ["br_analysis.*"]
+
+######################################################################
+# Coverage Config
+######################################################################
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.coverage.xml]
+output = "coverage.xml"
+[tool.poetry.group.dev.dependencies]
+watchfiles = "^1.0.5"
+

@@ -1,6 +1,8 @@
 {
+  "editor.detectIndentation": false,
+  "editor.insertSpaces": false,
+  "editor.tabSize": 2,
   "peacock.color": "#ffcc00",
-  "jest.jestCommandLine": "yarn jest",
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#ffd633",
     "activityBar.activeBorder": "#009f79",
@@ -21,5 +23,6 @@
     "titleBar.inactiveForeground": "#15202b99",
     "commandCenter.border": "#15202b99"
   },
-  "peacock.remoteColor": "#ffcc00"
+  "peacock.remoteColor": "#ffcc00",
+  "python.analysis.typeCheckingMode": "standard"
 }

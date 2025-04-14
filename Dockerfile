@@ -1,29 +1,23 @@
-FROM ubuntu:22.04
+FROM python:3.13-slim AS builder
 
-RUN apt update
-RUN apt install -y curl wget xz-utils unzip
+ARG POETRY_INSTALL_FLAGS=""
 
-# RUN apt install -y gpac
+ENV POETRY_VERSION=2.1.1
+RUN pip install -U "poetry==$POETRY_VERSION"
 
-# RUN apt install -y python3 pip
-# RUN pip install -U openai-whisper
+WORKDIR /app
 
-RUN curl -sL https://deb.nodesource.com/setup_18.x | bash -
-RUN apt install -y nodejs
-RUN npm install --global yarn
+COPY poetry.lock pyproject.toml /app/
 
-ENV FFMPEG_VERSION="ffmpeg-n6.0-latest-linux64-gpl-6.0"
-RUN wget -q https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${FFMPEG_VERSION}.tar.xz
-RUN tar -xvf ${FFMPEG_VERSION}.tar.xz
-RUN mv ${FFMPEG_VERSION}/bin/* /usr/bin/
-RUN rm -rf ${FFMPEG_VERSION}*
+RUN poetry config virtualenvs.in-project true && \
+  poetry install --no-interaction --no-root --no-ansi $POETRY_INSTALL_FLAGS
 
-WORKDIR /usr/local/app
-COPY . .
+ENV PATH="/app/.venv/bin:$PATH"
+COPY . /app/
 
-RUN yarn install --frozen-lockfile --development
-RUN yarn build
+FROM python:3.13-slim
 
-EXPOSE 5000
-
-CMD yarn start
+WORKDIR /app
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+COPY . /app/
