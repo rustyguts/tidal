@@ -1,6 +1,6 @@
 services:
   prefect-server:
-    image: prefecthq/prefect:3.2.12-python3.12
+    image: prefecthq/prefect:3.4.6-python3.13
     restart: always
     command: prefect server start
     volumes:
@@ -30,8 +30,6 @@ services:
     volumes:
       - ./tidal:/app/tidal
       - ./deploy.py:/app/deploy.py
-    env_file:
-      - .env
     depends_on:
       prefect-server:
         condition: service_started
