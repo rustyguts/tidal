@@ -15,6 +15,7 @@ from prefect.variables import Variable
 from rich import print
 from rich.console import Console
 
+from tidal.flows.transcode import transcode
 from tidal.flows.chunked_transcode import chunked_transcode
 from tidal.utils.types import Environment
 from tidal.utils.vars import GlobalQueues, TaskQueues
@@ -25,6 +26,7 @@ app = typer.Typer(no_args_is_help=True)
 EnvironmentFlag = typer.Option(help="The deployment environment")
 
 PREFECT_APP_VARIABLE_KEY = "app_tidal"
+
 
 def get_application_version() -> str:
 	with open("pyproject.toml") as f:
@@ -92,6 +94,7 @@ def prefect_variables(environment: Environment = EnvironmentFlag) -> None:
 	Variable.set(PREFECT_APP_VARIABLE_KEY, prefect_variable, overwrite=True)
 	print("[bold green]Successfully set Prefect variables![/bold green]")
 
+
 def prefect_server_check_configuration(max_retries: int = 5, delay: int = 2) -> bool:
 	api_url = os.getenv("PREFECT_API_URL", "http://localhost:4200/api")
 	print(f"[bold blue]PREFECT_API_URL was sourced from env: {api_url}[/bold blue]")
@@ -134,7 +137,14 @@ def prefect_flows(
 		concurrency_limit=ConcurrencyLimitConfig(limit=4),
 	)
 
-	serve(chunked_transcode_deployment) # type: ignore
+	transcode_deployment = transcode.to_deployment(
+		name="transcode",
+		version=app_version,
+		tags=deployment_tags,
+		concurrency_limit=ConcurrencyLimitConfig(limit=4),
+	)
+
+	serve(chunked_transcode_deployment, transcode_deployment)  # type: ignore
 	print("[bold green]Successfully deployed Prefect Flows![/bold green]")
 
 
@@ -147,6 +157,7 @@ def all(
 	asyncio.run(prefect_concurrency_limits())
 	prefect_flows(environment)
 	print("🟢 [bold purple]Deployment Success![/bold purple] 🟢")
+
 
 if __name__ == "__main__":
 	app()
