@@ -28,6 +28,7 @@ services:
       dockerfile: Dockerfile
     command: uv run watchfiles "uv run deploy.py all --environment local" /app
     volumes:
+      - ./data/:/data
       - ./tidal:/app/tidal
       - ./deploy.py:/app/deploy.py
     depends_on:
