@@ -1,27 +1,40 @@
 import os
 from prefect import flow, get_run_logger
 from pydantic import BaseModel
+from prefect.artifacts import (
+    create_progress_artifact,
+    update_progress_artifact,
+)
+import subprocess
 
 
 class TranscodeInput(BaseModel):
-	input: str = "/path/to/video.mp4"
-	output: str = "/path/to/output.mp4"
-	command: str = "ffmpeg -i {input} -c:v libx264 -preset fast -crf 22 {output}"
+	ffmpeg_arguments: str
 
 
 @flow
-def transcode(args: TranscodeInput) -> None:
+def transcode(input: TranscodeInput) -> None:
 	logger = get_run_logger()
-	logger.info(f"Transcoding: {args.input}")
+	
+	progress_artifact_id = create_progress_artifact(
+		progress=0.0,
+		description="Starting transcoding process",
+	)
 
-	logger.info(f"Checking to see that file exists: {input}")
-	if not os.path.exists(args.input):
-		raise FileNotFoundError(f"File does not exist: {args.input}")
+	result = subprocess.run(
+		f"ffmpeg {input.ffmpeg_arguments}",
+		text=True,
+		shell=True,
+		capture_output=True,
+	)
 
-	logger.info(f"Creating a unique directory: {input}")
+	update_progress_artifact(100)
 
-	logger.info(f"Successfully transcoded: {input}")
-
+	if result.returncode != 0:
+		logger.error(f"FFmpeg failed with return code {result.returncode}: {result.stderr}")
+		raise RuntimeError(f"FFmpeg process failed: {result.stderr}")
+	else:
+		logger.info(f"FFmpeg completed successfully: {result.stdout}")
 
 if __name__ == "__main__":
 	transcode.serve()
