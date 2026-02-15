@@ -1,26 +1,49 @@
 [project]
 name = "tidal"
-version = "0.0.1"
-description = ""
+version = "0.1.0"
+description = "Parallel video transcoding pipeline powered by Prefect"
 authors = [
-    {name = "Brendan Kennedy"}
+	{name = "Brendan Kennedy"}
 ]
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = "<3.14,>=3.9"
 dependencies = [
-    "prefect (>=3.3.4,<4.0.0)",
-    "pydantic (>=2.11.3,<3.0.0)",
-    "mypy (>=1.15.0,<2.0.0)",
-    "ruff (>=0.11.5,<0.12.0)",
-    "typer (>=0.15.2,<0.16.0)",
-    "watchfiles>=1.0.5",
+	"prefect (>=3.3.4,<4.0.0)",
+	"pydantic (>=2.11.3,<3.0.0)",
+	"typer (>=0.15.2,<0.16.0)",
+	"requests (>=2.31.0,<3.0.0)",
 ]
 
+[project.optional-dependencies]
+dev = [
+	"mypy (>=1.15.0,<2.0.0)",
+	"ruff (>=0.11.5,<0.12.0)",
+	"watchfiles (>=1.0.5)",
+	"pytest (>=8.0.0,<9.0.0)",
+	"pytest-asyncio (>=0.23.0,<1.0.0)",
+	"pytest-mock (>=3.12.0,<4.0.0)",
+	"coverage (>=7.4.0,<8.0.0)",
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+######################################################################
+# Pytest Config
+######################################################################
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+markers = [
+	"integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+	"slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 
 ######################################################################
 # Ruff Config
@@ -29,24 +52,17 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 120
 indent-width = 1
-exclude = [".git", ".mypy_cache"]
+exclude = [".git", ".mypy_cache", ".venv", "venv"]
 
 [tool.ruff.lint]
 select = [
-  # no mixed tabs and spaces
-  "E101",
-  # pycodestyle
-  "E",
-  # Pyflakes
-  "F",
-  # pyupgrade
-  "UP",
-  # flake8-bugbear
-  "B",
-  # flake8-simplify
-  "SIM",
-  # isort
-  "I",
+	"E101",
+	"E",
+	"F",
+	"UP",
+	"B",
+	"SIM",
+	"I",
 ]
 ignore = ["E501"]
 
@@ -59,7 +75,6 @@ indent-style = "tab"
 ######################################################################
 
 [tool.mypy]
-# docs: https://mypy.readthedocs.io/en/stable/config_file.html#using-a-pyproject-toml-file
 python_version = "3.10"
 plugins = ["pydantic.mypy"]
 exclude = ['venv', '.venv']
@@ -70,23 +85,18 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = true
 ignore_missing_imports = true
 
-[[tool.mypy.overrides]]
-ignore_missing_imports = true
-module = ["br_analysis.*"]
-
 ######################################################################
 # Coverage Config
 ######################################################################
 
 [tool.coverage.run]
 branch = true
-source = ["."]
+source = ["tidal"]
+omit = ["tests/*", ".venv/*"]
 
 [tool.coverage.report]
 show_missing = true
+fail_under = 70
 
 [tool.coverage.xml]
 output = "coverage.xml"
-[tool.poetry.group.dev.dependencies]
-watchfiles = "^1.0.5"
-

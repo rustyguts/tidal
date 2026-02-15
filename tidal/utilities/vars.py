@@ -12,16 +12,28 @@ class TaskQueueConfig(BaseModel):
 	limit: int
 
 
-TEST_GLOBAL_QUEUE = GlobalQueueConfig(
-	name="test",
-	limit=4,
-	slot_decay_per_second=1,
+# Global concurrency limits
+ENCODING_GLOBAL_QUEUE = GlobalQueueConfig(
+	name="encoding",
+	limit=8,
+	slot_decay_per_second=1.0,
 )
 
-TEST_TASK_QUEUE = TaskQueueConfig(
-	name="test",
-	limit=3,
+# Task-level concurrency limits
+ENCODING_TASK_QUEUE = TaskQueueConfig(
+	name="encoding",
+	limit=6,
 )
 
-TaskQueues = [TEST_TASK_QUEUE]
-GlobalQueues = [TEST_GLOBAL_QUEUE]
+SEGMENTATION_TASK_QUEUE = TaskQueueConfig(
+	name="segmentation",
+	limit=2,
+)
+
+VMAF_TASK_QUEUE = TaskQueueConfig(
+	name="vmaf",
+	limit=2,
+)
+
+TaskQueues = [ENCODING_TASK_QUEUE, SEGMENTATION_TASK_QUEUE, VMAF_TASK_QUEUE]
+GlobalQueues = [ENCODING_GLOBAL_QUEUE]

@@ -15,10 +15,10 @@ from prefect.variables import Variable
 from rich import print
 from rich.console import Console
 
+from tidal.flows.pipeline import pipeline
 from tidal.flows.transcode import transcode
-from tidal.flows.chunked_transcode import chunked_transcode
-from tidal.utils.types import Environment
-from tidal.utils.vars import GlobalQueues, TaskQueues
+from tidal.utilities.types import Environment
+from tidal.utilities.vars import GlobalQueues, TaskQueues
 
 console = Console()
 app = typer.Typer(no_args_is_help=True)
@@ -88,7 +88,8 @@ def prefect_variables(environment: Environment = EnvironmentFlag) -> None:
 		raise typer.Abort()
 
 	prefect_variable = {
-		"test_var": os.getenv("TEST_VAR", "test_var_default"),
+		"environment": environment.value,
+		"data_dir": os.getenv("TIDAL_DATA_DIR", "/data"),
 	}
 
 	Variable.set(PREFECT_APP_VARIABLE_KEY, prefect_variable, overwrite=True)
@@ -130,21 +131,22 @@ def prefect_flows(
 		raise typer.Abort()
 
 	print("[bold purple]Serving Local Prefect Flows In Process[/bold purple]")
-	chunked_transcode_deployment = chunked_transcode.to_deployment(
-		name="chunked-transcode",
+
+	pipeline_deployment = pipeline.to_deployment(
+		name="tidal-pipeline",
 		version=app_version,
 		tags=deployment_tags,
 		concurrency_limit=ConcurrencyLimitConfig(limit=4),
 	)
 
 	transcode_deployment = transcode.to_deployment(
-		name="transcode",
+		name="simple-transcode",
 		version=app_version,
 		tags=deployment_tags,
 		concurrency_limit=ConcurrencyLimitConfig(limit=4),
 	)
 
-	serve(chunked_transcode_deployment, transcode_deployment)  # type: ignore
+	serve(pipeline_deployment, transcode_deployment)  # type: ignore
 	print("[bold green]Successfully deployed Prefect Flows![/bold green]")
 
 
@@ -152,11 +154,11 @@ def prefect_flows(
 def all(
 	environment: Environment = EnvironmentFlag,
 ) -> None:
-	print(f"🌊 [bold purple]Deploying Tidal to [green]{environment}[/green] environment![/bold purple] 🌊")
+	print(f"[bold purple]Deploying Tidal to [green]{environment}[/green] environment![/bold purple]")
 	prefect_variables(environment)
 	asyncio.run(prefect_concurrency_limits())
 	prefect_flows(environment)
-	print("🟢 [bold purple]Deployment Success![/bold purple] 🟢")
+	print("[bold purple]Deployment Success![/bold purple]")
 
 
 if __name__ == "__main__":

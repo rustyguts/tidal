@@ -22,22 +22,26 @@ services:
       retries: 3
       start_period: 0s
 
-  prefect-process-worker:
+  prefect-worker:
     build:
       context: .
       dockerfile: Dockerfile
     command: uv run watchfiles "uv run deploy.py all --environment local" /app
     volumes:
-      - ./data/:/data
+      - ./data:/data
       - ./tidal:/app/tidal
       - ./deploy.py:/app/deploy.py
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./README.md:/app/README.md
     depends_on:
       prefect-server:
         condition: service_started
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
+      TIDAL_DATA_DIR: /data
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
 volumes:
   prefect-server:
+  shared-data:
