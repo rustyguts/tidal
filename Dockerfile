@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 RUN apt update && apt install -y wget xz-utils curl unzip && rm -rf /var/lib/apt/lists/*
 
