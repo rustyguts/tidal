@@ -2,7 +2,7 @@ FROM python:3.13-slim
 
 RUN apt update && apt install -y wget xz-utils curl unzip && rm -rf /var/lib/apt/lists/*
 
-# Install FFmpeg 7.1 with VMAF support (GPL build includes libvmaf)
+# Install FFmpeg 8.1 with VMAF support (GPL build includes libvmaf)
 # Detect architecture: Docker sets TARGETARCH to "amd64" or "arm64"
 ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
@@ -10,7 +10,7 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 	else \
 		FFMPEG_ARCH="linux64"; \
 	fi && \
-	FFMPEG_TAR="ffmpeg-n7.1-latest-${FFMPEG_ARCH}-gpl-7.1.tar.xz" && \
+	FFMPEG_TAR="ffmpeg-n8.1-latest-${FFMPEG_ARCH}-gpl-8.1.tar.xz" && \
 	wget -q "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${FFMPEG_TAR}" && \
 	tar -xf "${FFMPEG_TAR}" && \
 	FFMPEG_DIR=$(basename "${FFMPEG_TAR}" .tar.xz) && \
