@@ -22,6 +22,8 @@ RUN pip install -U uv
 
 WORKDIR /app
 
+ENV PATH="/app/.venv/bin:${PATH}"
+
 # Copy dependency and build files first for better layer caching
 COPY pyproject.toml uv.lock README.md ./
 

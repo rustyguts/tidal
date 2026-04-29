@@ -151,6 +151,48 @@ def prefect_flows(
 
 
 @app.command()
+def k8s(
+	environment: Environment = EnvironmentFlag,
+	image: str = typer.Option(..., help="Full image ref pushed to a registry, e.g. ghcr.io/rustyguts/tidal:abc1234"),
+	work_pool: str = typer.Option("cirus", help="Prefect Kubernetes work pool name"),
+) -> None:
+	"""Register flow deployments against a Kubernetes work pool using a prebuilt image."""
+	app_version = get_application_version()
+	deployment_tags = [environment.value, app_version]
+
+	if not prefect_server_check_configuration():
+		print("[bold red]Cannot proceed without Prefect server![/bold red]")
+		raise typer.Abort()
+
+	prefect_variables(environment)
+	asyncio.run(prefect_concurrency_limits())
+
+	print(f"[bold purple]Deploying Tidal flows to work pool [green]{work_pool}[/green] using image [green]{image}[/green][/bold purple]")
+
+	pipeline.deploy(  # type: ignore
+		name="tidal-pipeline",
+		work_pool_name=work_pool,
+		image=image,
+		build=False,
+		push=False,
+		version=app_version,
+		tags=deployment_tags,
+	)
+
+	transcode.deploy(  # type: ignore
+		name="simple-transcode",
+		work_pool_name=work_pool,
+		image=image,
+		build=False,
+		push=False,
+		version=app_version,
+		tags=deployment_tags,
+	)
+
+	print("[bold green]Successfully deployed Tidal flows to k8s![/bold green]")
+
+
+@app.command()
 def all(
 	environment: Environment = EnvironmentFlag,
 ) -> None:
