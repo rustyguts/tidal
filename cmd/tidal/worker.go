@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -97,9 +98,36 @@ func buildRunner(cfg config.Config, jobSvc *jobs.Service) (worker.Runner, error)
 			MediaPVC:          cfg.JobMediaPVC,
 			MediaHostPath:     cfg.JobMediaHostPath,
 			MediaMountPath:    cfg.JobMediaMountPath,
+			Resources:         buildJobResources(cfg),
 		}
 		return k8s.NewDispatcher(cli, proto), nil
 	default:
 		return nil, fmt.Errorf("unknown dispatcher mode %q", cfg.Dispatcher)
 	}
+}
+
+// buildJobResources translates the four TIDAL_DISPATCHER_JOB_* envs into a
+// corev1.ResourceRequirements. Empty values are skipped so an unset CPU limit
+// (no cap) coexists with a set memory limit, etc.
+func buildJobResources(cfg config.Config) corev1.ResourceRequirements {
+	rr := corev1.ResourceRequirements{}
+	if cfg.JobRequestCPU != "" || cfg.JobRequestMemory != "" {
+		rr.Requests = corev1.ResourceList{}
+		if cfg.JobRequestCPU != "" {
+			rr.Requests[corev1.ResourceCPU] = resource.MustParse(cfg.JobRequestCPU)
+		}
+		if cfg.JobRequestMemory != "" {
+			rr.Requests[corev1.ResourceMemory] = resource.MustParse(cfg.JobRequestMemory)
+		}
+	}
+	if cfg.JobLimitCPU != "" || cfg.JobLimitMemory != "" {
+		rr.Limits = corev1.ResourceList{}
+		if cfg.JobLimitCPU != "" {
+			rr.Limits[corev1.ResourceCPU] = resource.MustParse(cfg.JobLimitCPU)
+		}
+		if cfg.JobLimitMemory != "" {
+			rr.Limits[corev1.ResourceMemory] = resource.MustParse(cfg.JobLimitMemory)
+		}
+	}
+	return rr
 }

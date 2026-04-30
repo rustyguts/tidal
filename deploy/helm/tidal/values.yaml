@@ -32,12 +32,15 @@ dispatcher:
     image: ""            # defaults to image.repository:image.tag
     imagePullPolicy: IfNotPresent
     resources:
+      # Per-transcode pod resource hints. ffmpeg is memory-hungry; default
+      # leaves CPU uncapped so encodes finish faster on idle nodes.
+      # Set any field to "" / null to omit it.
       requests:
-        cpu: "1"
-        memory: 1Gi
+        cpu: "2"
+        memory: 12Gi
       limits:
-        cpu: "4"
-        memory: 4Gi
+        cpu: ""           # no CPU limit
+        memory: 24Gi
     nodeSelector: {}
     tolerations: []
     runtimeClassName: ""

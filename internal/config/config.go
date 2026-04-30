@@ -46,6 +46,14 @@ type Config struct {
 	JobMediaPVC       string `envconfig:"DISPATCHER_MEDIA_PVC"`
 	JobMediaHostPath  string `envconfig:"DISPATCHER_MEDIA_HOSTPATH"`
 	JobMediaMountPath string `envconfig:"DISPATCHER_MEDIA_MOUNT_PATH" default:"/media"`
+
+	// Per-job pod resource hints (passed straight to corev1.ResourceRequirements).
+	// Empty string = unset (k8s allows partial Requests/Limits).
+	JobRequestCPU    string `envconfig:"DISPATCHER_JOB_REQUEST_CPU"`
+	JobRequestMemory string `envconfig:"DISPATCHER_JOB_REQUEST_MEMORY"`
+	JobLimitCPU      string `envconfig:"DISPATCHER_JOB_LIMIT_CPU"`
+	JobLimitMemory   string `envconfig:"DISPATCHER_JOB_LIMIT_MEMORY"`
+
 	ServerInternalURL string `envconfig:"SERVER_INTERNAL_URL" default:"http://tidal-server.default.svc.cluster.local:8080"`
 
 	// Worker callback auth

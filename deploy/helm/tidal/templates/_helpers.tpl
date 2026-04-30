@@ -151,6 +151,26 @@ app.kubernetes.io/component: worker
 {{- end }}
 - name: TIDAL_DISPATCHER_MEDIA_MOUNT_PATH
   value: {{ .Values.media.mountPath | quote }}
+{{- with .Values.dispatcher.jobTemplate.resources.requests }}
+{{- with .cpu }}
+- name: TIDAL_DISPATCHER_JOB_REQUEST_CPU
+  value: {{ . | quote }}
+{{- end }}
+{{- with .memory }}
+- name: TIDAL_DISPATCHER_JOB_REQUEST_MEMORY
+  value: {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- with .Values.dispatcher.jobTemplate.resources.limits }}
+{{- with .cpu }}
+- name: TIDAL_DISPATCHER_JOB_LIMIT_CPU
+  value: {{ . | quote }}
+{{- end }}
+{{- with .memory }}
+- name: TIDAL_DISPATCHER_JOB_LIMIT_MEMORY
+  value: {{ . | quote }}
+{{- end }}
+{{- end }}
 {{- end }}
 - name: TIDAL_WORKER_CONCURRENCY
   value: {{ .Values.dispatcher.workerConcurrency | quote }}
