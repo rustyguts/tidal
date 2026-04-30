@@ -18,39 +18,13 @@ func TestValidate_DispatcherK8s(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "k8s with required fields",
-			cfg: Config{
-				Dispatcher:     "k8s",
-				JobImage:       "tidal:latest",
-				CallbackSecret: "secret123",
-			},
+			name:    "k8s with required fields",
+			cfg:     Config{Dispatcher: "k8s", JobImage: "tidal:latest"},
 			wantErr: false,
 		},
 		{
-			name: "k8s missing job image",
-			cfg: Config{
-				Dispatcher:     "k8s",
-				JobImage:       "",
-				CallbackSecret: "secret123",
-			},
-			wantErr: true,
-		},
-		{
-			name: "k8s missing callback secret",
-			cfg: Config{
-				Dispatcher:     "k8s",
-				JobImage:       "tidal:latest",
-				CallbackSecret: "",
-			},
-			wantErr: true,
-		},
-		{
-			name: "k8s missing both",
-			cfg: Config{
-				Dispatcher:     "k8s",
-				JobImage:       "",
-				CallbackSecret: "",
-			},
+			name:    "k8s missing job image",
+			cfg:     Config{Dispatcher: "k8s", JobImage: ""},
 			wantErr: true,
 		},
 	}
