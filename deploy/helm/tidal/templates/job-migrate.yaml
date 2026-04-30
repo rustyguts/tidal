@@ -5,16 +5,18 @@ metadata:
   name: {{ include "tidal.fullname" . }}-migrate
   labels: {{- include "tidal.labels" . | nindent 4 }}
   annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "0"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    # Run BEFORE the deployments so the schema is in place when servers boot.
+    # We use ArgoCD sync-wave (regular resource, wave 5) instead of a helm
+    # pre-install hook so the migrate Job sees the chart-managed Secrets,
+    # ServiceAccounts, and the Postgres subchart.
+    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
-  backoffLimit: 1
+  backoffLimit: 5
   ttlSecondsAfterFinished: 600
   template:
     spec:
-      restartPolicy: Never
-      serviceAccountName: {{ include "tidal.serverServiceAccount" . }}
+      restartPolicy: OnFailure
       {{- with .Values.image.pullSecrets }}
       imagePullSecrets: {{- toYaml . | nindent 8 }}
       {{- end }}
