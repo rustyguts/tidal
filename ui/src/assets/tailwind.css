@@ -2,3 +2,29 @@
 @plugin "daisyui" {
 	themes: dark --default --prefersdark, light;
 }
+
+/* daisyUI v5 dropped the .form-control / .label-text classes that v4 shipped.
+   The preset editor still relies on them for column-stacked label/input rows,
+   so reintroduce them as plain utilities. The :has(.toggle) variant handles
+   the inline checkbox+text rows where stacking would look wrong. */
+.form-control {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	width: 100%;
+}
+.form-control:has(> .toggle, > input[type="checkbox"].toggle) {
+	flex-direction: row;
+	align-items: center;
+	gap: 0.5rem;
+}
+.form-control > .input,
+.form-control > .select,
+.form-control > .textarea {
+	width: 100%;
+}
+.label-text {
+	font-size: 0.75rem;
+	line-height: 1rem;
+	color: color-mix(in oklab, currentColor 70%, transparent);
+}

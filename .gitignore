@@ -19,9 +19,9 @@ bun.lockb
 
 # Build output
 ui/dist/
-# vue-tsc emits .js next to .vue/.ts during -b builds
-ui/src/**/*.vue.js
-ui/src/**/*.test.js
+# vue-tsc emits .js next to every .ts/.vue during -b builds; none of the
+# .js files in ui/src are handwritten, so ignore them all.
+ui/src/**/*.js
 
 # IDE
 .vscode/

@@ -64,6 +64,48 @@ func TestPreview_unknownCodec(t *testing.T) {
 	}
 }
 
+func TestPreview_explicitPaths(t *testing.T) {
+	body := `{"spec":{"schemaVersion":2,"container":{"format":"mp4"},"video":{"codec":"libx264","rate":{"mode":"crf","crf":23}},"audio":{"codec":"aac"}},"inputPath":"/in.mov","outputPath":"/out.mp4"}`
+	resp := postPreview(t, body)
+	if !containsArg(resp.Argv, "-i", "/in.mov") {
+		t.Errorf("expected -i /in.mov in argv: %v", resp.Argv)
+	}
+}
+
+func TestPreview_invalidBody(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/presets/preview", strings.NewReader(`not json`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	h := NewPresetPreview(nil, domain.ValidateOpts{})
+	err := h.Post(c)
+	if err == nil {
+		t.Error("expected 400 on bad body")
+	}
+}
+
+func TestPreview_emptySpec(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodPost, "/api/presets/preview", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	h := NewPresetPreview(nil, domain.ValidateOpts{})
+	err := h.Post(c)
+	if err == nil {
+		t.Error("expected error on missing spec")
+	}
+}
+
+func TestPreview_unparseableSpec(t *testing.T) {
+	body := `{"spec":"not-an-object"}`
+	resp := postPreview(t, body)
+	if len(resp.Errors) == 0 {
+		t.Error("expected parse errors")
+	}
+}
+
 func TestPreview_placeholderPaths(t *testing.T) {
 	body := `{"spec":{"schemaVersion":2,"container":{"format":"mp4"},"video":{"codec":"libx264","rate":{"mode":"crf","crf":23}},"audio":{"codec":"aac"}}}`
 	resp := postPreview(t, body)

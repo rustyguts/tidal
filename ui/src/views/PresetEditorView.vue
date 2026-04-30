@@ -678,11 +678,15 @@ const FilterArgs = defineComponent({
 			if (value === '') delete props.step.args[key]
 			else props.step.args[key] = value
 		}
-		return { setArg }
+		function eventValue(e: Event): string {
+			const t = e.target as HTMLInputElement | HTMLSelectElement | null
+			return t?.value ?? ''
+		}
+		return { setArg, eventValue }
 	},
 	template: `
 		<div class="space-y-2">
-			<div v-if="!catalog?.args?.length" class="text-xs text-base-content/50 italic">No arguments.</div>
+			<div v-if="!catalog || !catalog.args || !catalog.args.length" class="text-xs text-base-content/50 italic">No arguments.</div>
 			<div v-else class="grid grid-cols-2 gap-2">
 				<label v-for="arg in catalog.args" :key="arg.name" class="form-control">
 					<span class="label-text text-xs">
@@ -691,10 +695,10 @@ const FilterArgs = defineComponent({
 						<span v-if="arg.description" class="text-base-content/50">{{ ' — ' + arg.description }}</span>
 					</span>
 					<select
-						v-if="arg.type === 'enum' && arg.enum?.length"
+						v-if="arg.type === 'enum' && arg.enum && arg.enum.length"
 						class="select select-bordered select-xs"
-						:value="step.args?.[arg.name] ?? arg.default ?? ''"
-						@change="setArg(arg.name, ($event.target as HTMLSelectElement).value)"
+						:value="(step.args && step.args[arg.name]) || arg.default || ''"
+						@change="setArg(arg.name, eventValue($event))"
 					>
 						<option value="">—</option>
 						<option v-for="v in arg.enum" :key="v" :value="v">{{ v }}</option>
@@ -703,9 +707,9 @@ const FilterArgs = defineComponent({
 						v-else
 						:type="arg.type === 'int' || arg.type === 'float' ? 'number' : 'text'"
 						class="input input-bordered input-xs"
-						:placeholder="arg.default ?? ''"
-						:value="step.args?.[arg.name] ?? ''"
-						@input="setArg(arg.name, ($event.target as HTMLInputElement).value)"
+						:placeholder="arg.default || ''"
+						:value="(step.args && step.args[arg.name]) || ''"
+						@input="setArg(arg.name, eventValue($event))"
 					/>
 				</label>
 			</div>
