@@ -321,16 +321,16 @@ func (s *Service) publishStatus(id domain.JobID, status domain.JobStatus, errMsg
 
 func topicJob(id domain.JobID) string { return "job:" + id.String() }
 
+// derivedOutputPath returns the source basename with the preset's container
+// as the new extension, in the same directory as the source. No preset name
+// or resolution suffix — caller-provided outputPath should be used when a
+// non-colliding location is required (e.g. recordings/raw → recordings/output).
 func derivedOutputPath(source string, p domain.Preset) string {
 	dir := filepath.Dir(source)
 	base := strings.TrimSuffix(filepath.Base(source), filepath.Ext(source))
-	suffix := p.Spec.OutputSuffix
-	if suffix == "" {
-		suffix = "_" + p.Name
-	}
 	ext := strings.ToLower(p.Spec.Container)
 	if ext == "" {
 		ext = "mp4"
 	}
-	return filepath.Join(dir, base+suffix+"."+ext)
+	return filepath.Join(dir, base+"."+ext)
 }
