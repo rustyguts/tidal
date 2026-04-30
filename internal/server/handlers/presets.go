@@ -19,15 +19,21 @@ func NewPresets(svc *presets.Service) *Presets {
 }
 
 type presetCreateRequest struct {
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	Spec        domain.PresetSpec `json:"spec"`
+	Name           string            `json:"name"`
+	Description    string            `json:"description"`
+	Spec           domain.PresetSpec `json:"spec"`
+	OutputPath     string            `json:"outputPath,omitempty"`
+	CachePath      string            `json:"cachePath,omitempty"`
+	SourceMovePath string            `json:"sourceMovePath,omitempty"`
 }
 
 type presetUpdateRequest struct {
-	Name        *string              `json:"name,omitempty"`
-	Description *string              `json:"description,omitempty"`
-	Spec        *domain.PresetSpec `json:"spec,omitempty"`
+	Name           *string            `json:"name,omitempty"`
+	Description    *string            `json:"description,omitempty"`
+	Spec           *domain.PresetSpec `json:"spec,omitempty"`
+	OutputPath     *string            `json:"outputPath,omitempty"`
+	CachePath      *string            `json:"cachePath,omitempty"`
+	SourceMovePath *string            `json:"sourceMovePath,omitempty"`
 }
 
 type duplicateRequest struct {
@@ -60,9 +66,12 @@ func (h *Presets) Create(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid body")
 	}
 	p, err := h.svc.Create(c.Request().Context(), presets.CreateInput{
-		Name:        req.Name,
-		Description: req.Description,
-		Spec:        req.Spec,
+		Name:           req.Name,
+		Description:    req.Description,
+		Spec:           req.Spec,
+		OutputPath:     req.OutputPath,
+		CachePath:      req.CachePath,
+		SourceMovePath: req.SourceMovePath,
 	})
 	if err != nil {
 		return err
@@ -80,9 +89,12 @@ func (h *Presets) Update(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid body")
 	}
 	p, err := h.svc.Update(c.Request().Context(), id, presets.UpdateInput{
-		Name:        req.Name,
-		Description: req.Description,
-		Spec:        req.Spec,
+		Name:           req.Name,
+		Description:    req.Description,
+		Spec:           req.Spec,
+		OutputPath:     req.OutputPath,
+		CachePath:      req.CachePath,
+		SourceMovePath: req.SourceMovePath,
 	})
 	if err != nil {
 		return err

@@ -17,16 +17,15 @@ const jobs = useJobsStore()
 const presets = usePresetsStore()
 const { items, loading, error } = storeToRefs(jobs)
 
-const DEFAULT_CACHE = '/var/cache/tidal'
-
 const showNew = ref(false)
 const form = ref({
 	presetId: '',
-	sourcePath: '',
-	outputPath: '',
-	cachePath: DEFAULT_CACHE,
-	sourceMovePath: ''
+	sourcePath: ''
 })
+
+const selectedPreset = computed(() =>
+	presets.items.find((p) => p.id === form.value.presetId) || null
+)
 const submitting = ref(false)
 const submitErr = ref<string | null>(null)
 
@@ -89,16 +88,10 @@ async function submit() {
 	try {
 		await jobs.enqueue({
 			presetId: form.value.presetId,
-			sourcePath: form.value.sourcePath.trim(),
-			outputPath: form.value.outputPath.trim() || undefined,
-			cachePath: form.value.cachePath.trim() || undefined,
-			sourceMovePath: form.value.sourceMovePath.trim() || undefined
+			sourcePath: form.value.sourcePath.trim()
 		})
 		showNew.value = false
 		form.value.sourcePath = ''
-		form.value.outputPath = ''
-		form.value.sourceMovePath = ''
-		form.value.cachePath = DEFAULT_CACHE
 	} catch (e) {
 		submitErr.value = e instanceof Error ? e.message : String(e)
 	} finally {
@@ -219,32 +212,12 @@ async function submit() {
 						class="input input-bordered w-full font-mono text-sm"
 					/>
 				</fieldset>
-				<fieldset class="fieldset">
-					<legend class="fieldset-legend">Output path <span class="text-base-content/50">(optional)</span></legend>
-					<input
-						v-model="form.outputPath"
-						placeholder="leave empty for auto-derived"
-						class="input input-bordered w-full font-mono text-sm"
-					/>
-				</fieldset>
-				<fieldset class="fieldset">
-					<legend class="fieldset-legend">Tidal cache path</legend>
-					<input
-						v-model="form.cachePath"
-						placeholder="/var/cache/tidal"
-						class="input input-bordered w-full font-mono text-sm"
-					/>
-					<p class="text-xs text-base-content/50">Working dir for ffmpeg temp files inside the worker container.</p>
-				</fieldset>
-				<fieldset class="fieldset">
-					<legend class="fieldset-legend">Source move path <span class="text-base-content/50">(optional)</span></legend>
-					<input
-						v-model="form.sourceMovePath"
-						placeholder="/media/archive/  (or full path)"
-						class="input input-bordered w-full font-mono text-sm"
-					/>
-					<p class="text-xs text-base-content/50">If set, source file moves here on success.</p>
-				</fieldset>
+				<div v-if="selectedPreset" class="rounded-box bg-base-200 px-3 py-2 text-xs space-y-1">
+					<div class="font-semibold uppercase tracking-wide text-base-content/60">Preset paths</div>
+					<div><span class="text-base-content/60">Output:</span> <span class="font-mono">{{ selectedPreset.outputPath || '(auto: alongside source)' }}</span></div>
+					<div><span class="text-base-content/60">Cache:</span> <span class="font-mono">{{ selectedPreset.cachePath || '/var/cache/tidal' }}</span></div>
+					<div><span class="text-base-content/60">Archive:</span> <span class="font-mono">{{ selectedPreset.sourceMovePath || '(none)' }}</span></div>
+				</div>
 				<div v-if="submitErr" class="alert alert-error">
 					<span>{{ submitErr }}</span>
 				</div>

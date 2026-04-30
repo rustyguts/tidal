@@ -27,6 +27,9 @@ const isNew = computed(() => route.params.id === 'new' || !route.params.id)
 const name = ref('')
 const description = ref('')
 const builtin = ref(false)
+const outputPath = ref('')
+const cachePath = ref('')
+const sourceMovePath = ref('')
 const draft = reactive<PresetSpec>(blankSpec())
 const activeTab = ref<'container' | 'video' | 'audio' | 'filters' | 'hwaccel' | 'advanced'>('video')
 
@@ -56,6 +59,9 @@ onMounted(async () => {
 			name.value = p.name
 			description.value = p.description
 			builtin.value = p.builtin
+			outputPath.value = p.outputPath ?? ''
+			cachePath.value = p.cachePath ?? ''
+			sourceMovePath.value = p.sourceMovePath ?? ''
 			// Merge against blank to fill missing nested keys when the server
 			// returns a partial spec.
 			const base = blankSpec()
@@ -182,13 +188,23 @@ async function save() {
 	saving.value = true
 	try {
 		if (isNew.value || builtin.value) {
-			const created = await presetsStore.create({ name: name.value, description: description.value, spec: draft })
+			const created = await presetsStore.create({
+				name: name.value,
+				description: description.value,
+				spec: draft,
+				outputPath: outputPath.value.trim() || undefined,
+				cachePath: cachePath.value.trim() || undefined,
+				sourceMovePath: sourceMovePath.value.trim() || undefined
+			})
 			router.replace({ name: 'preset-edit', params: { id: created.id } })
 		} else {
 			await presetsStore.update(String(route.params.id), {
 				name: name.value,
 				description: description.value,
-				spec: draft
+				spec: draft,
+				outputPath: outputPath.value.trim(),
+				cachePath: cachePath.value.trim(),
+				sourceMovePath: sourceMovePath.value.trim()
 			})
 		}
 	} catch (e) {
@@ -240,6 +256,32 @@ function reset() {
 						<label class="form-control">
 							<span class="label-text text-xs">Description</span>
 							<input v-model="description" class="input input-bordered input-sm" />
+						</label>
+					</div>
+				</fieldset>
+
+				<!-- Default paths (used when a job is created from this preset
+					 without overriding them in the request). Workflows still
+					 supply their own paths per action. -->
+				<fieldset class="card bg-base-100 border border-base-300">
+					<div class="card-body p-4 gap-3">
+						<legend class="font-medium">Default paths</legend>
+						<p class="text-xs text-base-content/60">
+							Optional. When set, jobs that pick this preset use these as defaults
+							so the New Job form needs only a source file. Treat output / archive
+							as directories — the source's basename is appended.
+						</p>
+						<label class="form-control">
+							<span class="label-text text-xs">Output directory</span>
+							<input v-model="outputPath" class="input input-bordered input-sm font-mono" placeholder="/media/output" />
+						</label>
+						<label class="form-control">
+							<span class="label-text text-xs">Cache directory <span class="text-base-content/40">(default: /var/cache/tidal)</span></span>
+							<input v-model="cachePath" class="input input-bordered input-sm font-mono" placeholder="/var/cache/tidal" />
+						</label>
+						<label class="form-control">
+							<span class="label-text text-xs">Archive directory <span class="text-base-content/40">(move source on success)</span></span>
+							<input v-model="sourceMovePath" class="input input-bordered input-sm font-mono" placeholder="/media/archive" />
 						</label>
 					</div>
 				</fieldset>

@@ -7,11 +7,14 @@ import (
 )
 
 type Preset struct {
-	ID          PresetID   `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Builtin     bool       `json:"builtin"`
-	Spec        PresetSpec `json:"spec"`
+	ID             PresetID   `json:"id"`
+	Name           string     `json:"name"`
+	Description    string     `json:"description"`
+	Builtin        bool       `json:"builtin"`
+	Spec           PresetSpec `json:"spec"`
+	OutputPath     string     `json:"outputPath,omitempty"`
+	CachePath      string     `json:"cachePath,omitempty"`
+	SourceMovePath string     `json:"sourceMovePath,omitempty"`
 	Timestamps
 }
 

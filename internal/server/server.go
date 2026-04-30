@@ -18,6 +18,7 @@ import (
 	"github.com/rustyguts/tidal/internal/jobs"
 	"github.com/rustyguts/tidal/internal/presets"
 	"github.com/rustyguts/tidal/internal/realtime"
+	"github.com/rustyguts/tidal/internal/settings"
 	"github.com/rustyguts/tidal/internal/workflows"
 )
 
@@ -28,6 +29,7 @@ type Deps struct {
 	Catalog   *catalog.Catalog
 	Jobs      *jobs.Service
 	Workflows *workflows.Service
+	Settings  *settings.Service
 	Hub       *realtime.Hub
 	RedisOpt  *asynq.RedisClientOpt // when set, asynqmon is mounted at /asynq
 }

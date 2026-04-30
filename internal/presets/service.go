@@ -37,7 +37,7 @@ func New(pool *pgxpool.Pool, cat *catalog.Catalog, opts domain.ValidateOpts) *Se
 }
 
 const (
-	colSelect = "id, name, description, builtin, spec, created_at, updated_at"
+	colSelect = "id, name, description, builtin, spec, output_path, cache_path, source_move_path, created_at, updated_at"
 )
 
 func (s *Service) List(ctx context.Context) ([]domain.Preset, error) {
@@ -77,10 +77,13 @@ func (s *Service) GetByName(ctx context.Context, name string) (domain.Preset, er
 }
 
 type CreateInput struct {
-	Name        string
-	Description string
-	Builtin     bool
-	Spec        domain.PresetSpec
+	Name           string
+	Description    string
+	Builtin        bool
+	Spec           domain.PresetSpec
+	OutputPath     string
+	CachePath      string
+	SourceMovePath string
 }
 
 func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Preset, error) {
@@ -96,9 +99,10 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Preset, er
 	now := time.Now().UTC()
 
 	_, err = s.pool.Exec(ctx,
-		`INSERT INTO presets (id, name, description, builtin, spec, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $6)`,
-		id, in.Name, in.Description, in.Builtin, specJSON, now)
+		`INSERT INTO presets (id, name, description, builtin, spec, output_path, cache_path, source_move_path, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)`,
+		id, in.Name, in.Description, in.Builtin, specJSON,
+		in.OutputPath, in.CachePath, in.SourceMovePath, now)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return domain.Preset{}, ErrConflict
@@ -109,9 +113,12 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Preset, er
 }
 
 type UpdateInput struct {
-	Name        *string
-	Description *string
-	Spec        *domain.PresetSpec
+	Name           *string
+	Description    *string
+	Spec           *domain.PresetSpec
+	OutputPath     *string
+	CachePath      *string
+	SourceMovePath *string
 }
 
 func (s *Service) Update(ctx context.Context, id domain.PresetID, in UpdateInput) (domain.Preset, error) {
@@ -132,14 +139,26 @@ func (s *Service) Update(ctx context.Context, id domain.PresetID, in UpdateInput
 		}
 		cur.Spec = spec
 	}
+	if in.OutputPath != nil {
+		cur.OutputPath = *in.OutputPath
+	}
+	if in.CachePath != nil {
+		cur.CachePath = *in.CachePath
+	}
+	if in.SourceMovePath != nil {
+		cur.SourceMovePath = *in.SourceMovePath
+	}
 	specJSON, err := json.Marshal(cur.Spec)
 	if err != nil {
 		return domain.Preset{}, fmt.Errorf("marshal spec: %w", err)
 	}
 	now := time.Now().UTC()
 	tag, err := s.pool.Exec(ctx,
-		`UPDATE presets SET name = $2, description = $3, spec = $4, updated_at = $5 WHERE id = $1`,
-		id, cur.Name, cur.Description, specJSON, now)
+		`UPDATE presets SET name = $2, description = $3, spec = $4,
+		   output_path = $5, cache_path = $6, source_move_path = $7, updated_at = $8
+		 WHERE id = $1`,
+		id, cur.Name, cur.Description, specJSON,
+		cur.OutputPath, cur.CachePath, cur.SourceMovePath, now)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return domain.Preset{}, ErrConflict
@@ -172,10 +191,13 @@ func (s *Service) Duplicate(ctx context.Context, id domain.PresetID, newName str
 		return domain.Preset{}, err
 	}
 	return s.Create(ctx, CreateInput{
-		Name:        newName,
-		Description: cur.Description,
-		Builtin:     false,
-		Spec:        cur.Spec,
+		Name:           newName,
+		Description:    cur.Description,
+		Builtin:        false,
+		Spec:           cur.Spec,
+		OutputPath:     cur.OutputPath,
+		CachePath:      cur.CachePath,
+		SourceMovePath: cur.SourceMovePath,
 	})
 }
 
@@ -190,7 +212,8 @@ func scanPreset(r rowScanner) (domain.Preset, error) {
 		specRaw  []byte
 		descNull *string
 	)
-	err := r.Scan(&p.ID, &p.Name, &descNull, &p.Builtin, &specRaw, &p.CreatedAt, &p.UpdatedAt)
+	err := r.Scan(&p.ID, &p.Name, &descNull, &p.Builtin, &specRaw,
+		&p.OutputPath, &p.CachePath, &p.SourceMovePath, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return domain.Preset{}, err
 	}

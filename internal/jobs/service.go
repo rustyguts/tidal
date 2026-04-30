@@ -78,11 +78,25 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Job, error
 
 	out := strings.TrimSpace(in.OutputPath)
 	if out == "" {
+		if dir := strings.TrimSpace(preset.OutputPath); dir != "" {
+			out = filepath.Join(dir, outputBasename(in.SourcePath, preset))
+		}
+	}
+	if out == "" {
 		out = derivedOutputPath(in.SourcePath, preset)
 	}
 	cache := strings.TrimSpace(in.CachePath)
 	if cache == "" {
+		cache = strings.TrimSpace(preset.CachePath)
+	}
+	if cache == "" {
 		cache = DefaultCachePath
+	}
+	moveTo := strings.TrimSpace(in.SourceMovePath)
+	if moveTo == "" {
+		if dir := strings.TrimSpace(preset.SourceMovePath); dir != "" {
+			moveTo = filepath.Join(dir, filepath.Base(in.SourcePath))
+		}
 	}
 
 	job := domain.Job{
@@ -92,7 +106,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Job, error
 		SourcePath:     in.SourcePath,
 		OutputPath:     out,
 		CachePath:      cache,
-		SourceMovePath: strings.TrimSpace(in.SourceMovePath),
+		SourceMovePath: moveTo,
 		Status:         domain.JobQueued,
 		WorkflowID:     in.WorkflowID,
 		CreatedAt:      time.Now().UTC(),
@@ -363,11 +377,16 @@ func topicJob(id domain.JobID) string { return "job:" + id.String() }
 // or resolution suffix — caller-provided outputPath should be used when a
 // non-colliding location is required (e.g. recordings/raw → recordings/output).
 func derivedOutputPath(source string, p domain.Preset) string {
-	dir := filepath.Dir(source)
+	return filepath.Join(filepath.Dir(source), outputBasename(source, p))
+}
+
+// outputBasename returns the source's stem with the preset's container
+// extension appended (e.g. "clip.mkv" → "clip.mp4").
+func outputBasename(source string, p domain.Preset) string {
 	base := strings.TrimSuffix(filepath.Base(source), filepath.Ext(source))
 	ext := strings.ToLower(p.Spec.Container.Format)
 	if ext == "" {
 		ext = "mp4"
 	}
-	return filepath.Join(dir, base+"."+ext)
+	return base + "." + ext
 }

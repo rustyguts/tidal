@@ -43,6 +43,12 @@ func mountRoutes(e *echo.Echo, deps Deps) {
 	api.DELETE("/jobs/:id", jobsHandler.Cancel)
 	api.GET("/jobs/:id/logs", jobsHandler.Logs)
 
+	if deps.Settings != nil {
+		st := handlers.NewSettings(deps.Settings)
+		api.GET("/settings", st.Get)
+		api.PATCH("/settings", st.Update)
+	}
+
 	if deps.Workflows != nil {
 		wf := handlers.NewWorkflows(deps.Workflows)
 		api.GET("/workflows", wf.List)

@@ -134,6 +134,9 @@ export interface Preset {
 	description: string
 	builtin: boolean
 	spec: PresetSpec
+	outputPath?: string
+	cachePath?: string
+	sourceMovePath?: string
 	createdAt: string
 	updatedAt: string
 }

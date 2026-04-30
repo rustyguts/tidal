@@ -24,6 +24,9 @@ type Runner interface {
 type Config struct {
 	RedisOpt    asynq.RedisClientOpt
 	Concurrency int
+	// MaxConcurrency caps the asynq pool so the dynamic semaphore can scale up
+	// without re-creating the server. Defaults to max(Concurrency*4, 16).
+	MaxConcurrency int
 }
 
 type Worker struct {
@@ -31,6 +34,10 @@ type Worker struct {
 	mux     *asynq.ServeMux
 	jobsSvc *jobs.Service
 	runner  Runner
+	// transcodeSem caps the number of in-flight ffmpeg jobs. Resizable at
+	// runtime via SetTranscodeConcurrency; the asynq pool itself stays at
+	// MaxConcurrency so new tasks wait on the sem instead of in Redis.
+	transcodeSem *DynSem
 }
 
 func New(cfg Config, jobsSvc *jobs.Service, runner Runner) *Worker {
@@ -38,8 +45,15 @@ func New(cfg Config, jobsSvc *jobs.Service, runner Runner) *Worker {
 	if c <= 0 {
 		c = 4
 	}
+	maxC := cfg.MaxConcurrency
+	if maxC < c {
+		maxC = c * 4
+	}
+	if maxC < 16 {
+		maxC = 16
+	}
 	srv := asynq.NewServer(cfg.RedisOpt, asynq.Config{
-		Concurrency: c,
+		Concurrency: maxC,
 		Queues: map[string]int{
 			queue.QueueTranscode: 6,
 			queue.QueueScan:      3,
@@ -48,12 +62,26 @@ func New(cfg Config, jobsSvc *jobs.Service, runner Runner) *Worker {
 		Logger: zerologAdapter{},
 	})
 	mux := asynq.NewServeMux()
-	w := &Worker{srv: srv, mux: mux, jobsSvc: jobsSvc, runner: runner}
+	w := &Worker{
+		srv:          srv,
+		mux:          mux,
+		jobsSvc:      jobsSvc,
+		runner:       runner,
+		transcodeSem: NewDynSem(c),
+	}
 	mux.HandleFunc(queue.TaskTypeTranscode, w.handleTranscode)
 	mux.HandleFunc(queue.TaskTypeScan, w.handleScan)
 	mux.HandleFunc(queue.TaskTypeCleanup, w.handleCleanup)
 	return w
 }
+
+// SetTranscodeConcurrency adjusts the in-flight ffmpeg cap at runtime.
+func (w *Worker) SetTranscodeConcurrency(n int) {
+	w.transcodeSem.SetMax(n)
+}
+
+// TranscodeConcurrency returns the current cap.
+func (w *Worker) TranscodeConcurrency() int { return w.transcodeSem.Max() }
 
 func (w *Worker) Start() error {
 	log.Info().Msg("worker starting")
@@ -77,6 +105,10 @@ func (w *Worker) handleTranscode(ctx context.Context, t *asynq.Task) error {
 	if err := json.Unmarshal(t.Payload(), &p); err != nil {
 		return fmt.Errorf("unmarshal transcode: %w", err)
 	}
+	if err := w.transcodeSem.Acquire(ctx); err != nil {
+		return err
+	}
+	defer w.transcodeSem.Release()
 	return w.runner.Run(ctx, p.JobID)
 }
 

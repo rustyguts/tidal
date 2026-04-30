@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/api/client'
-import type { Preset, PresetSpec } from '@/api/types'
+import type { Preset } from '@/api/types'
 
 export const usePresetsStore = defineStore('presets', () => {
 	const items = ref<Preset[]>([])
@@ -22,7 +22,7 @@ export const usePresetsStore = defineStore('presets', () => {
 		}
 	}
 
-	async function create(body: { name: string; description?: string; spec: PresetSpec }) {
+	async function create(body: Parameters<typeof api.presets.create>[0]) {
 		const p = await api.presets.create(body)
 		items.value = [...items.value, p].sort((a, b) => a.name.localeCompare(b.name))
 		return p

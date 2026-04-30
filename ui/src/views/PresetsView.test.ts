@@ -54,7 +54,7 @@ describe('PresetsView', () => {
 		await flushPromises()
 		expect(w.text()).toContain('h264-1080p')
 		expect(w.text()).toContain('libx264')
-		expect(w.text()).toContain('crf 20')
+		expect(w.text()).toContain('CRF 20')
 		expect(w.text()).toContain('mp4')
 		expect(w.text()).toContain('1920×1080')
 		expect(w.text()).toContain('built-in')
@@ -204,8 +204,8 @@ describe('PresetsView', () => {
 		await router.isReady()
 		const w = mount(PresetsView, { global: { plugins: [router] } })
 		await flushPromises()
-		expect(w.text()).toContain('qp 22')
-		expect(w.text()).toContain('cbr 5M')
+		expect(w.text()).toContain('QP 22')
+		expect(w.text()).toContain('CBR 5M')
 	})
 	it('shows hwaccel and 2-pass badges when set', async () => {
 		const advanced: Preset = {

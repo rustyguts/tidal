@@ -20,6 +20,7 @@ import (
 	"github.com/rustyguts/tidal/internal/queue"
 	"github.com/rustyguts/tidal/internal/realtime"
 	"github.com/rustyguts/tidal/internal/server"
+	"github.com/rustyguts/tidal/internal/settings"
 	"github.com/rustyguts/tidal/internal/workflows"
 )
 
@@ -81,6 +82,8 @@ func serverCmd() *cobra.Command {
 			// worker`), not here. Server stays stateless so it can scale
 			// horizontally with zero-downtime rolling updates.
 
+			settingsSvc := settings.New(pool)
+
 			srv := server.New(server.Deps{
 				Config:    cfg,
 				Pool:      pool,
@@ -88,6 +91,7 @@ func serverCmd() *cobra.Command {
 				Catalog:   cat,
 				Jobs:      jobSvc,
 				Workflows: wfSvc,
+				Settings:  settingsSvc,
 				Hub:       hub,
 				RedisOpt:  &redisCopy,
 			})

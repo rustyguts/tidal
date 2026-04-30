@@ -23,6 +23,7 @@ import (
 	"github.com/rustyguts/tidal/internal/presets"
 	"github.com/rustyguts/tidal/internal/queue"
 	"github.com/rustyguts/tidal/internal/realtime"
+	"github.com/rustyguts/tidal/internal/settings"
 	"github.com/rustyguts/tidal/internal/worker"
 	"github.com/rustyguts/tidal/internal/workflows"
 )
@@ -94,10 +95,39 @@ func workerCmd() *cobra.Command {
 				}
 			}()
 
+			settingsSvc := settings.New(pool)
+			startConcurrency, err := settingsSvc.GetInt(ctx, settings.KeyTranscodeConcurrency, cfg.WorkerConcurrency)
+			if err != nil {
+				log.Warn().Err(err).Msg("read transcode concurrency setting")
+				startConcurrency = cfg.WorkerConcurrency
+			}
+
 			w := worker.New(worker.Config{
 				RedisOpt:    redisOpt,
-				Concurrency: cfg.WorkerConcurrency,
+				Concurrency: startConcurrency,
 			}, jobSvc, runner)
+
+			// Poll DB so concurrency edits in the UI take effect within a few
+			// seconds without server→worker IPC. Cheap query; one row.
+			go func() {
+				t := time.NewTicker(5 * time.Second)
+				defer t.Stop()
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-t.C:
+						n, err := settingsSvc.GetInt(context.Background(), settings.KeyTranscodeConcurrency, cfg.WorkerConcurrency)
+						if err != nil {
+							continue
+						}
+						if n != w.TranscodeConcurrency() {
+							log.Info().Int("from", w.TranscodeConcurrency()).Int("to", n).Msg("concurrency updated")
+							w.SetTranscodeConcurrency(n)
+						}
+					}
+				}
+			}()
 
 			if err := w.Start(); err != nil {
 				return err

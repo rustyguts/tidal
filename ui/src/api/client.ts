@@ -38,12 +38,37 @@ export const api = {
 	system: {
 		info: () => request<SystemInfo>('/api/system/info')
 	},
+	settings: {
+		get: () => request<{ transcodeConcurrency: number }>('/api/settings'),
+		update: (body: { transcodeConcurrency?: number }) =>
+			request<{ transcodeConcurrency: number }>('/api/settings', {
+				method: 'PATCH',
+				body: JSON.stringify(body)
+			})
+	},
 	presets: {
 		list: () => request<Preset[]>('/api/presets'),
 		get: (id: string) => request<Preset>(`/api/presets/${id}`),
-		create: (body: { name: string; description?: string; spec: PresetSpec }) =>
+		create: (body: {
+			name: string
+			description?: string
+			spec: PresetSpec
+			outputPath?: string
+			cachePath?: string
+			sourceMovePath?: string
+		}) =>
 			request<Preset>('/api/presets', { method: 'POST', body: JSON.stringify(body) }),
-		update: (id: string, body: { name?: string; description?: string; spec?: PresetSpec }) =>
+		update: (
+			id: string,
+			body: {
+				name?: string
+				description?: string
+				spec?: PresetSpec
+				outputPath?: string
+				cachePath?: string
+				sourceMovePath?: string
+			}
+		) =>
 			request<Preset>(`/api/presets/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 		remove: (id: string) =>
 			request<void>(`/api/presets/${id}`, { method: 'DELETE' }),
