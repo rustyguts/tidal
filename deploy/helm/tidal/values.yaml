@@ -1,0 +1,131 @@
+image:
+  repository: ghcr.io/rustyguts/tidal
+  tag: ""                # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+server:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  env: {}                # extra env injected into the server container
+  podAnnotations: {}
+
+dispatcher:
+  mode: batch            # "batch" (default) dispatches each transcode as a K8s Job.
+                         # "worker" runs ffmpeg in-process inside the worker Deployment.
+  replicaCount: 1        # MVP keeps a single dispatcher to avoid concurrent K8s Job creation races
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: "1"
+      memory: 256Mi
+  workerConcurrency: 4
+  jobTemplate:
+    image: ""            # defaults to image.repository:image.tag
+    imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: "1"
+        memory: 1Gi
+      limits:
+        cpu: "4"
+        memory: 4Gi
+    nodeSelector: {}
+    tolerations: []
+    runtimeClassName: ""
+
+worker:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  concurrency: 4
+  env: {}
+  podAnnotations: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: tidal.local
+  tls: []                # [{secretName: tls-tidal, hosts: [tidal.local]}]
+
+postgresql:
+  enabled: true
+  auth:
+    username: tidal
+    password: tidal
+    database: tidal
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+externalDatabase:                 # used when postgresql.enabled = false
+  url: ""                         # e.g. postgres://user:pw@host:5432/tidal?sslmode=disable
+  existingSecret: ""              # secret containing key `database-url`
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+
+externalRedis:
+  url: ""                         # e.g. redis://host:6379/0
+  existingSecret: ""
+
+media:
+  pvc:
+    enabled: false
+    storageClass: ""
+    accessModes: [ReadWriteMany]
+    size: 50Gi
+  existingClaim: ""               # use pre-created PVC
+  hostPath: ""                    # single-node fallback
+  nfs:
+    server: ""                    # e.g. 10.0.0.10
+    path: ""                      # e.g. /volume1/shack/media
+    readOnly: false
+  mountPath: /media
+
+callbackSecret:
+  create: true
+  existingSecret: ""              # secret containing key `callback-secret`
+
+migrations:
+  runOnInstall: true              # pre-install/upgrade Helm hook executes `tidal migrate up`
+
+metrics:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    interval: 30s
+
+serviceAccount:
+  server:
+    create: true
+    name: ""
+  dispatcher:
+    create: true
+    name: ""
+  worker:
+    create: true
+    name: ""

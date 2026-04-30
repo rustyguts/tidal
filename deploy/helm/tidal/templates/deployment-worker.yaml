@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tidal.fullname" . }}-worker
+  labels: {{- include "tidal.labels" . | nindent 4 }}
+spec:
+  {{- if eq .Values.dispatcher.mode "worker" }}
+  replicas: {{ .Values.worker.replicaCount }}
+  {{- else }}
+  replicas: 0
+  {{- end }}
+  selector:
+    matchLabels: {{- include "tidal.workerSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "tidal.workerSelectorLabels" . | nindent 8 }}
+      {{- with .Values.worker.podAnnotations }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "tidal.workerServiceAccount" . }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker
+          image: {{ include "tidal.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["tidal"]
+          args: ["worker"]
+          env:
+            {{- include "tidal.commonEnv" . | nindent 12 }}
+            {{- include "tidal.workerEnv" . | nindent 12 }}
+          {{- with .Values.worker.env }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources: {{- toYaml .Values.worker.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "tidal.mediaVolumeMounts" . | nindent 12 }}
+      volumes: {{- include "tidal.mediaVolumes" . | nindent 8 }}

@@ -1,0 +1,13 @@
+.git/
+.gitignore
+.gitattributes
+.github/
+node_modules/
+ui/node_modules/
+ui/dist/
+*.md
+.DS_Store
+.vscode/
+.idea/
+bin/
+data/

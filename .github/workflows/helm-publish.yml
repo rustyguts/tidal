@@ -1,0 +1,30 @@
+name: Publish Helm chart
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Helm login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username ${{ github.actor }} --password-stdin
+
+      - name: Package chart
+        run: helm package deploy/helm/tidal -d /tmp/charts
+
+      - name: Push chart
+        run: |
+          chart=$(ls /tmp/charts/*.tgz | head -1)
+          helm push "$chart" oci://ghcr.io/${{ github.repository_owner }}/charts

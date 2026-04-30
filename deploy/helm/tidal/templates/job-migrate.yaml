@@ -1,0 +1,39 @@
+{{- if .Values.migrations.runOnInstall }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "tidal.fullname" . }}-migrate
+  labels: {{- include "tidal.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "tidal.serverServiceAccount" . }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: migrate
+          image: {{ include "tidal.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["tidal"]
+          args: ["migrate", "up"]
+          env:
+            - name: TIDAL_LOG_PRETTY
+              value: "false"
+            - name: TIDAL_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tidal.databaseSecretName" . }}
+                  key: database-url
+            - name: TIDAL_REDIS_URL
+              value: "redis://localhost:6379/0"  # not used by migrate; satisfy validation
+            - name: TIDAL_CALLBACK_SECRET
+              value: "unused-by-migrate"
+{{- end }}

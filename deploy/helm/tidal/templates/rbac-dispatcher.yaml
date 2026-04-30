@@ -1,0 +1,34 @@
+{{- if and .Values.serviceAccount.dispatcher.create (eq .Values.dispatcher.mode "batch") }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "tidal.fullname" . }}-dispatcher
+  labels: {{- include "tidal.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "tidal.fullname" . }}-dispatcher
+  labels: {{- include "tidal.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "tidal.dispatcherServiceAccount" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "tidal.fullname" . }}-dispatcher
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

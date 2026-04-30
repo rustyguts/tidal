@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tidal.fullname" . }}-server
+  labels: {{- include "tidal.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.server.replicaCount }}
+  selector:
+    matchLabels: {{- include "tidal.serverSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "tidal.serverSelectorLabels" . | nindent 8 }}
+      {{- with .Values.server.podAnnotations }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "tidal.serverServiceAccount" . }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: server
+          image: {{ include "tidal.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["tidal"]
+          args: ["server"]
+          ports:
+            - name: http
+              containerPort: 8080
+          env: {{- include "tidal.commonEnv" . | nindent 12 }}
+            - name: TIDAL_HTTP_ADDR
+              value: ":8080"
+          {{- with .Values.server.env }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources: {{- toYaml .Values.server.resources | nindent 12 }}
+          volumeMounts: {{- include "tidal.mediaVolumeMounts" . | nindent 12 }}
+      volumes: {{- include "tidal.mediaVolumes" . | nindent 8 }}

@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Helm lint
+        run: helm lint deploy/helm/tidal
+      - name: Helm template (default values)
+        run: helm template tidal deploy/helm/tidal -f deploy/helm/tidal/values.yaml > /dev/null

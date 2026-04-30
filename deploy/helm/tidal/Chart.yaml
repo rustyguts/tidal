@@ -1,0 +1,17 @@
+apiVersion: v2
+name: tidal
+description: Tidal — parallel video transcoding pipeline (Go + asynq + K8s Jobs)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+icon: https://raw.githubusercontent.com/rustyguts/tidal/main/.github/icon.png
+
+dependencies:
+  - name: postgresql
+    version: 16.x.x
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: postgresql.enabled
+  - name: redis
+    version: 22.x.x
+    repository: oci://registry-1.docker.io/bitnamicharts
+    condition: redis.enabled

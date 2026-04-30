@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS seeded_presets;
+DROP TABLE IF EXISTS presets;

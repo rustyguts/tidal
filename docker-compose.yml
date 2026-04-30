@@ -1,47 +1,92 @@
 services:
-  prefect-server:
-    image: prefecthq/prefect:3.4.6-python3.13
-    restart: always
-    command: prefect server start
-    volumes:
-      - prefect-server:/root/.prefect
-    environment:
-      PREFECT_SERVER_API_HOST: "0.0.0.0"
-      PREFECT_UI_URL: http://127.0.0.1:4200/api
-      PREFECT_API_URL: http://127.0.0.1:4200/api
+  server:
+    build: .
+    command: server
     ports:
-      - 4200:4200
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'python3 -c ''import urllib.request; urllib.request.urlopen("http://localhost:4200/api/health")''',
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 0s
-
-  prefect-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: uv run watchfiles "uv run deploy.py all --environment local" /app
-    volumes:
-      - ./data:/data
-      - ./tidal:/app/tidal
-      - ./deploy.py:/app/deploy.py
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./README.md:/app/README.md
-    depends_on:
-      prefect-server:
-        condition: service_started
+      - "${TIDAL_HOST_PORT:-8090}:8080"
     environment:
-      PREFECT_API_URL: http://prefect-server:4200/api
-      TIDAL_DATA_DIR: /data
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      TIDAL_ENV: development
+      TIDAL_LOG_LEVEL: debug
+      TIDAL_LOG_PRETTY: "true"
+      TIDAL_HTTP_ADDR: ":8080"
+      TIDAL_DB_URL: postgres://tidal:tidal@postgres:5432/tidal?sslmode=disable
+      TIDAL_REDIS_URL: redis://redis:6379/0
+      TIDAL_DISPATCHER: local
+      TIDAL_MEDIA_ROOTS: /media
+      TIDAL_AUTO_MIGRATE: "true"
+    volumes:
+      - media:/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: worker
+    environment:
+      TIDAL_ENV: development
+      TIDAL_LOG_LEVEL: debug
+      TIDAL_LOG_PRETTY: "true"
+      TIDAL_DB_URL: postgres://tidal:tidal@postgres:5432/tidal?sslmode=disable
+      TIDAL_REDIS_URL: redis://redis:6379/0
+      TIDAL_DISPATCHER: local
+      TIDAL_MEDIA_ROOTS: /media
+    volumes:
+      - media:/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ui:
+    image: oven/bun:1
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./ui:/app
+      - ui-node-modules:/app/node_modules
+    environment:
+      VITE_API_PROXY: http://server:8080
+    command: ["sh", "-c", "bun install && bun run dev --host 0.0.0.0"]
+    depends_on:
+      server:
+        condition: service_started
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: tidal
+      POSTGRES_PASSWORD: tidal
+      POSTGRES_DB: tidal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tidal"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
-  prefect-server:
-  shared-data:
+  redis:
+  media:
+  postgres:
+  ui-node-modules:

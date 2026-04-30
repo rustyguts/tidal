@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tidal.fullname" . }}-dispatcher
+  labels: {{- include "tidal.labels" . | nindent 4 }}
+spec:
+  {{- if eq .Values.dispatcher.mode "batch" }}
+  replicas: {{ .Values.dispatcher.replicaCount }}
+  {{- else }}
+  replicas: 0
+  {{- end }}
+  selector:
+    matchLabels: {{- include "tidal.dispatcherSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "tidal.dispatcherSelectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "tidal.dispatcherServiceAccount" . }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: dispatcher
+          image: {{ include "tidal.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["tidal"]
+          args: ["worker"]
+          env:
+            {{- include "tidal.commonEnv" . | nindent 12 }}
+            {{- include "tidal.dispatcherEnv" . | nindent 12 }}
+          resources: {{- toYaml .Values.dispatcher.resources | nindent 12 }}

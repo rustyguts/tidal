@@ -1,0 +1,38 @@
+{{- if and .Values.media.nfs.server .Values.media.nfs.path (not .Values.media.pvc.enabled) (not .Values.media.existingClaim) }}
+{{- $name := printf "%s-media-nfs" (include "tidal.fullname" .) }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ $name }}
+  labels: {{- include "tidal.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage: {{ default "1Ti" .Values.media.nfs.capacity }}
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+  nfs:
+    server: {{ .Values.media.nfs.server | quote }}
+    path: {{ .Values.media.nfs.path | quote }}
+    readOnly: {{ .Values.media.nfs.readOnly }}
+  claimRef:
+    namespace: {{ .Release.Namespace }}
+    name: {{ $name }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}
+  labels: {{- include "tidal.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: {{ $name }}
+  resources:
+    requests:
+      storage: {{ default "1Ti" .Values.media.nfs.capacity }}
+{{- end }}

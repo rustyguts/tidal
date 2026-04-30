@@ -1,0 +1,15 @@
+{{- if .Values.media.pvc.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s-media" (include "tidal.fullname" .) }}
+  labels: {{- include "tidal.labels" . | nindent 4 }}
+spec:
+  accessModes: {{- toYaml .Values.media.pvc.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.media.pvc.size }}
+  {{- with .Values.media.pvc.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+{{- end }}

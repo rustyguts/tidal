@@ -1,16 +1,19 @@
 version: 2
 updates:
-  - package-ecosystem: 'uv'
+  - package-ecosystem: 'gomod'
     directory: '/'
     schedule:
       interval: 'daily'
     labels:
       - dependencies
-    ignore:
-      - dependency-name: '*'
-        update-types: ['version-update:semver-minor']
   - package-ecosystem: 'docker'
     directory: '/'
+    schedule:
+      interval: 'daily'
+    labels:
+      - dependencies
+  - package-ecosystem: 'npm'
+    directory: '/ui'
     schedule:
       interval: 'daily'
     labels:
