@@ -5,7 +5,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/rustyguts/tidal/internal/auth"
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
@@ -17,19 +16,18 @@ type JobSpec struct {
 	ImagePullPolicy   corev1.PullPolicy
 	ServiceAccount    string
 	ServerInternalURL string
-	CallbackSecretRef string // name of K8s Secret containing TIDAL_CALLBACK_SECRET key
 	// MediaPVC names a PersistentVolumeClaim that the per-job pod should mount
 	// at MediaMountPath. The chart binds the claim to whatever storage class
 	// the operator chose; the dispatcher only sees the claim name.
-	MediaPVC          string
-	MediaHostPath     string // optional dev fallback when no PVC is available
-	MediaMountPath    string // default /media
-	BackoffLimit      int32
-	TTLSecondsAfter   int32
-	Resources         corev1.ResourceRequirements
-	NodeSelector      map[string]string
-	Tolerations       []corev1.Toleration
-	RuntimeClassName  string
+	MediaPVC         string
+	MediaHostPath    string // optional dev fallback when no PVC is available
+	MediaMountPath   string // default /media
+	BackoffLimit     int32
+	TTLSecondsAfter  int32
+	Resources        corev1.ResourceRequirements
+	NodeSelector     map[string]string
+	Tolerations      []corev1.Toleration
+	RuntimeClassName string
 }
 
 // Build returns a Kubernetes Job object. Caller submits via batch/v1
@@ -46,21 +44,8 @@ func Build(spec JobSpec) *batchv1.Job {
 
 	volumes, mounts := buildMediaVolume(spec, mountPath)
 
-	envSrc := []corev1.EnvFromSource{}
 	env := []corev1.EnvVar{
 		{Name: "TIDAL_LOG_PRETTY", Value: "false"},
-	}
-	if spec.CallbackSecretRef != "" {
-		env = append(env, corev1.EnvVar{
-			Name: "TIDAL_CALLBACK_SECRET",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: spec.CallbackSecretRef},
-					Key:                  "callback-secret",
-					Optional:             pointerBool(false),
-				},
-			},
-		})
 	}
 
 	backoff := spec.BackoffLimit
@@ -73,7 +58,6 @@ func Build(spec JobSpec) *batchv1.Job {
 		"runjob",
 		"--job-id=" + spec.JobID.String(),
 		"--server-url=" + spec.ServerInternalURL,
-		"--callback-header=" + auth.HeaderName,
 	}
 
 	job := &batchv1.Job{
@@ -111,7 +95,6 @@ func Build(spec JobSpec) *batchv1.Job {
 						Command:         []string{"tidal"},
 						Args:            args,
 						Env:             env,
-						EnvFrom:         envSrc,
 						VolumeMounts:    mounts,
 						Resources:       spec.Resources,
 					}},
@@ -149,5 +132,3 @@ func buildMediaVolume(spec JobSpec, mountPath string) ([]corev1.Volume, []corev1
 	}
 	return nil, nil
 }
-
-func pointerBool(b bool) *bool { return &b }

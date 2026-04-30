@@ -70,14 +70,6 @@ app.kubernetes.io/component: worker
 {{- end -}}
 {{- end -}}
 
-{{- define "tidal.callbackSecretName" -}}
-{{- if .Values.callbackSecret.existingSecret -}}
-{{- .Values.callbackSecret.existingSecret -}}
-{{- else -}}
-{{- printf "%s-callback" (include "tidal.fullname" .) -}}
-{{- end -}}
-{{- end -}}
-
 {{- define "tidal.databaseSecretName" -}}
 {{- if .Values.externalDatabase.existingSecret -}}
 {{- .Values.externalDatabase.existingSecret -}}
@@ -108,11 +100,6 @@ app.kubernetes.io/component: worker
     secretKeyRef:
       name: {{ include "tidal.redisSecretName" . }}
       key: redis-url
-- name: TIDAL_CALLBACK_SECRET
-  valueFrom:
-    secretKeyRef:
-      name: {{ include "tidal.callbackSecretName" . }}
-      key: callback-secret
 {{- end -}}
 
 {{/* tidal.mediaPVC returns the effective claim name the chart hands to Tidal.
@@ -139,8 +126,6 @@ app.kubernetes.io/component: worker
   value: {{ default (include "tidal.image" .) .Values.dispatcher.jobTemplate.image | quote }}
 - name: TIDAL_DISPATCHER_JOB_SERVICE_ACCOUNT
   value: {{ include "tidal.dispatcherServiceAccount" . }}
-- name: TIDAL_DISPATCHER_CALLBACK_SECRET_NAME
-  value: {{ include "tidal.callbackSecretName" . }}
 - name: TIDAL_SERVER_INTERNAL_URL
   value: http://{{ include "tidal.fullname" . }}-server.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
 {{- $pvc := include "tidal.mediaPVC" . }}

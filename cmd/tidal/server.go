@@ -80,15 +80,14 @@ func serverCmd() *cobra.Command {
 			defer scheduler.Stop()
 
 			srv := server.New(server.Deps{
-				Config:         cfg,
-				Pool:           pool,
-				Presets:        presetSvc,
-				Jobs:           jobSvc,
-				Automations:    autoSvc,
-				OnAutomation:   func() { _ = scheduler.Sync(context.Background()) },
-				Hub:            hub,
-				CallbackSecret: cfg.CallbackSecret,
-				RedisOpt:       &redisCopy,
+				Config:       cfg,
+				Pool:         pool,
+				Presets:      presetSvc,
+				Jobs:         jobSvc,
+				Automations:  autoSvc,
+				OnAutomation: func() { _ = scheduler.Sync(context.Background()) },
+				Hub:          hub,
+				RedisOpt:     &redisCopy,
 			})
 
 			errCh := make(chan error, 1)

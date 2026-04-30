@@ -19,27 +19,22 @@ type JobSpecResponse struct {
 	Preset     domain.PresetSpec `json:"preset"`
 	SourcePath string            `json:"sourcePath"`
 	OutputPath string            `json:"outputPath"`
+	CachePath  string            `json:"cachePath,omitempty"`
 }
 
 // CallbackClient is used by `tidal runjob` to fetch the spec and post status,
-// progress, and log batches back to the Tidal server. Auth is via shared
-// secret in `X-Tidal-Callback-Secret`.
+// progress, and log batches back to the Tidal server. The /api/internal/*
+// endpoints are unauthenticated by design — restrict via NetworkPolicy or
+// in-cluster networking.
 type CallbackClient struct {
-	base       string
-	hc         *http.Client
-	secretHdr  string
-	secret     string
+	base string
+	hc   *http.Client
 }
 
-func NewCallbackClient(serverURL, header, secret string) *CallbackClient {
-	if header == "" {
-		header = "X-Tidal-Callback-Secret"
-	}
+func NewCallbackClient(serverURL string) *CallbackClient {
 	return &CallbackClient{
-		base:      strings.TrimRight(serverURL, "/"),
-		hc:        &http.Client{Timeout: 30 * time.Second},
-		secretHdr: header,
-		secret:    secret,
+		base: strings.TrimRight(serverURL, "/"),
+		hc:   &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -83,9 +78,6 @@ func (c *CallbackClient) do(ctx context.Context, method, path string, body, out 
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if c.secret != "" {
-		req.Header.Set(c.secretHdr, c.secret)
-	}
 	resp, err := c.hc.Do(req)
 	if err != nil {
 		return fmt.Errorf("%s %s: %w", method, path, err)

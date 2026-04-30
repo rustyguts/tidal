@@ -21,15 +21,14 @@ import (
 )
 
 type Deps struct {
-	Config         config.Config
-	Pool           *pgxpool.Pool
-	Presets        *presets.Service
-	Jobs           *jobs.Service
-	Automations    *automations.Service
-	OnAutomation   func() // notify scheduler of changes
-	Hub            *realtime.Hub
-	CallbackSecret string
-	RedisOpt       *asynq.RedisClientOpt // when set, asynqmon is mounted at /asynq
+	Config       config.Config
+	Pool         *pgxpool.Pool
+	Presets      *presets.Service
+	Jobs         *jobs.Service
+	Automations  *automations.Service
+	OnAutomation func() // notify scheduler of changes
+	Hub          *realtime.Hub
+	RedisOpt     *asynq.RedisClientOpt // when set, asynqmon is mounted at /asynq
 }
 
 type Server struct {

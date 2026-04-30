@@ -36,6 +36,4 @@ spec:
                   key: database-url
             - name: TIDAL_REDIS_URL
               value: "redis://localhost:6379/0"  # not used by migrate; satisfy validation
-            - name: TIDAL_CALLBACK_SECRET
-              value: "unused-by-migrate"
 {{- end }}

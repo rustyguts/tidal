@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -20,9 +19,8 @@ import (
 
 func runjobCmd() *cobra.Command {
 	var (
-		jobID          string
-		serverURL      string
-		callbackHeader string
+		jobID     string
+		serverURL string
 	)
 	cmd := &cobra.Command{
 		Use:   "runjob",
@@ -30,15 +28,10 @@ func runjobCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			logging.Setup(logging.Options{Level: "info", Pretty: false, Service: "runjob"})
 
-			secret := os.Getenv("TIDAL_CALLBACK_SECRET")
-			if secret == "" {
-				return fmt.Errorf("TIDAL_CALLBACK_SECRET env required")
-			}
-
 			ctx, stop := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 
-			cb := ffmpeg.NewCallbackClient(serverURL, callbackHeader, secret)
+			cb := ffmpeg.NewCallbackClient(serverURL)
 			spec, err := cb.Spec(ctx, jobID)
 			if err != nil {
 				return fmt.Errorf("fetch spec: %w", err)
@@ -87,11 +80,11 @@ func runjobCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&jobID, "job-id", "", "ID of the job to run")
 	cmd.Flags().StringVar(&serverURL, "server-url", "", "Tidal server base URL")
-	cmd.Flags().StringVar(&callbackHeader, "callback-header", "X-Tidal-Callback-Secret", "header used for the shared secret")
 	_ = cmd.MarkFlagRequired("job-id")
 	_ = cmd.MarkFlagRequired("server-url")
 	return cmd
 }
+
 
 // progressSink batches log lines and rate-limits progress posts so the
 // callback channel doesn't drown the server.

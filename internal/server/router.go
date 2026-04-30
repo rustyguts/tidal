@@ -3,7 +3,6 @@ package server
 import (
 	"github.com/labstack/echo/v4"
 
-	"github.com/rustyguts/tidal/internal/auth"
 	"github.com/rustyguts/tidal/internal/metrics"
 	"github.com/rustyguts/tidal/internal/realtime"
 	"github.com/rustyguts/tidal/internal/server/handlers"
@@ -62,15 +61,15 @@ func mountRoutes(e *echo.Echo, deps Deps) {
 
 	mountAsynqmon(e, deps)
 
-	if deps.CallbackSecret != "" {
-		callbacks := handlers.NewJobCallbacks(deps.Jobs, deps.Presets)
-		internal := api.Group("/internal", auth.CallbackSecret(deps.CallbackSecret))
-		internal.GET("/jobs/:id/spec", callbacks.Spec)
-		internal.POST("/jobs/:id/status", callbacks.Status)
-		internal.POST("/jobs/:id/progress", callbacks.Progress)
-		internal.POST("/jobs/:id/log", callbacks.Log)
-		internal.POST("/jobs/:id/heartbeat", callbacks.Heartbeat)
-	}
+	// Per-job pod callbacks. Unauthenticated by design — internal endpoints
+	// stay on the cluster network. Tighten with NetworkPolicy if needed.
+	callbacks := handlers.NewJobCallbacks(deps.Jobs, deps.Presets)
+	internal := api.Group("/internal")
+	internal.GET("/jobs/:id/spec", callbacks.Spec)
+	internal.POST("/jobs/:id/status", callbacks.Status)
+	internal.POST("/jobs/:id/progress", callbacks.Progress)
+	internal.POST("/jobs/:id/log", callbacks.Log)
+	internal.POST("/jobs/:id/heartbeat", callbacks.Heartbeat)
 
 	mountSPA(e)
 }

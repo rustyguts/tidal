@@ -54,14 +54,7 @@ type Config struct {
 	JobLimitCPU      string `envconfig:"DISPATCHER_JOB_LIMIT_CPU"`
 	JobLimitMemory   string `envconfig:"DISPATCHER_JOB_LIMIT_MEMORY"`
 
-	// Name of the K8s Secret containing the callback-secret key. Mounted as
-	// TIDAL_CALLBACK_SECRET env into per-job pods.
-	JobCallbackSecretRef string `envconfig:"DISPATCHER_CALLBACK_SECRET_NAME" default:"tidal-callback"`
-
 	ServerInternalURL string `envconfig:"SERVER_INTERNAL_URL" default:"http://tidal-server.default.svc.cluster.local:8080"`
-
-	// Worker callback auth
-	CallbackSecret string `envconfig:"CALLBACK_SECRET"`
 
 	// Media browsing (server-side allow-list)
 	MediaRoots StringSlice `envconfig:"MEDIA_ROOTS" default:"/media"`
@@ -106,9 +99,6 @@ func (c Config) validate() error {
 	if c.Dispatcher == DispatcherK8s {
 		if c.JobImage == "" {
 			return fmt.Errorf("TIDAL_DISPATCHER_JOB_IMAGE required when DISPATCHER=k8s")
-		}
-		if c.CallbackSecret == "" {
-			return fmt.Errorf("TIDAL_CALLBACK_SECRET required when DISPATCHER=k8s")
 		}
 	}
 	return nil
