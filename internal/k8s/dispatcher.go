@@ -16,11 +16,19 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-// CancelChecker reports whether the user has requested cancellation for a job
-// (status == cancelling/cancelled in the DB). The dispatcher polls this from
-// its watch loop and, on observed cancel intent, deletes the K8s Job.
-type CancelChecker interface {
+// JobCoordinator is the dispatcher's hook back into the Tidal jobs.Service.
+// The dispatcher uses it to:
+//   - poll for user-initiated cancel intent (status=cancelling/cancelled),
+//   - mark the DB row terminal once it observes a K8s Job condition or
+//     completes a user-cancel-driven delete.
+//
+// runjob no longer reports terminal state on pod SIGTERM (pod termination !=
+// user cancel), so the dispatcher is the authoritative writer for terminal
+// status in the k8s dispatcher mode.
+type JobCoordinator interface {
 	IsCancelRequested(ctx context.Context, jobID domain.JobID) (bool, error)
+	Cancelled(ctx context.Context, jobID domain.JobID)
+	Failed(ctx context.Context, jobID domain.JobID, jobErr error)
 }
 
 // Dispatcher creates one batch/v1.Job per task and watches it to completion.
@@ -30,26 +38,29 @@ type CancelChecker interface {
 // allowed to keep running. asynq retries the task; the new dispatcher pod
 // re-attaches via the deterministic Job name and resumes watching.
 type Dispatcher struct {
-	cli           *kubernetes.Clientset
-	specProto     JobSpec
-	cancelChecker CancelChecker
+	cli         *kubernetes.Clientset
+	specProto   JobSpec
+	coordinator JobCoordinator
 }
 
 func NewDispatcher(cli *kubernetes.Clientset, proto JobSpec) *Dispatcher {
 	return &Dispatcher{cli: cli, specProto: proto}
 }
 
-// SetCancelChecker wires DB-status polling for user-initiated cancellations.
-// Optional: if nil, the dispatcher only stops watching on K8s Job terminal
-// state or context cancellation.
-func (d *Dispatcher) SetCancelChecker(c CancelChecker) { d.cancelChecker = c }
+// SetCoordinator wires the bridge to jobs.Service for cancel intent + DB
+// terminal-status writes. Required for k8s dispatcher mode; if nil the
+// dispatcher cannot finalize jobs and the DB row stays "running" forever.
+func (d *Dispatcher) SetCoordinator(c JobCoordinator) { d.coordinator = c }
 
 // Run creates the K8s Job for the given JobID and blocks until terminal.
+// All DB terminal-state writes (cancelled/failed/succeeded) flow through the
+// coordinator — runjob does not write terminal state in k8s mode.
+//
 // Returns:
-//   - nil on K8s Job Complete
-//   - error on K8s Job Failed
-//   - context.Canceled on dispatcher shutdown (Job left running for retry)
-//   - "user cancelled" when CancelChecker observes status=cancelling
+//   - nil on K8s Job Complete (runjob already posted Succeeded)
+//   - nil on K8s Job Failed (coordinator writes Failed; no asynq retry)
+//   - nil on observed user cancel (coordinator writes Cancelled)
+//   - ctx.Err() on dispatcher shutdown (Job left running; asynq retries re-attach)
 func (d *Dispatcher) Run(ctx context.Context, jobID domain.JobID) error {
 	spec := d.specProto
 	spec.JobID = jobID
@@ -77,6 +88,10 @@ func (d *Dispatcher) Run(ctx context.Context, jobID domain.JobID) error {
 // Returns ctx.Err() on dispatcher shutdown WITHOUT touching the K8s Job —
 // the in-flight encode keeps running across rolling restarts; asynq's retry
 // path will re-attach.
+//
+// On any observed terminal outcome (user cancel, K8s Job failed, K8s Job
+// disappeared) the coordinator writes the DB row to its terminal state and
+// the dispatcher returns nil so asynq does NOT retry the task.
 func (d *Dispatcher) waitForCompletion(ctx context.Context, namespace, name string, jobID domain.JobID) error {
 	tick := time.NewTicker(2 * time.Second)
 	defer tick.Stop()
@@ -87,18 +102,24 @@ func (d *Dispatcher) waitForCompletion(ctx context.Context, namespace, name stri
 			return ctx.Err()
 		case <-tick.C:
 			// User-initiated cancel.
-			if d.cancelChecker != nil {
-				cancelReq, err := d.cancelChecker.IsCancelRequested(ctx, jobID)
+			if d.coordinator != nil {
+				cancelReq, err := d.coordinator.IsCancelRequested(ctx, jobID)
 				if err == nil && cancelReq {
 					d.deleteJob(namespace, name)
-					return errors.New("user cancelled")
+					d.coordinator.Cancelled(context.Background(), jobID)
+					return nil
 				}
 			}
 
 			job, err := d.cli.BatchV1().Jobs(namespace).Get(ctx, name, metav1.GetOptions{})
 			if err != nil {
 				if apierrors.IsNotFound(err) {
-					return errors.New("k8s Job disappeared")
+					// Job vanished without a terminal condition — most likely
+					// pruned by an external controller (ArgoCD prune, manual
+					// kubectl delete). Treat as a hard failure rather than a
+					// retry-able error so the user sees a definitive state.
+					d.markFailed(jobID, errors.New("k8s Job disappeared"))
+					return nil
 				}
 				log.Warn().Err(err).Str("k8sJob", name).Msg("get job poll")
 				continue
@@ -107,9 +128,17 @@ func (d *Dispatcher) waitForCompletion(ctx context.Context, namespace, name stri
 				if cond.Type == batchv1.JobComplete {
 					return nil
 				}
-				return fmt.Errorf("k8s Job failed: %s", cond.Message)
+				d.markFailed(jobID, fmt.Errorf("k8s Job failed: %s", cond.Message))
+				return nil
 			}
 		}
+	}
+}
+
+func (d *Dispatcher) markFailed(jobID domain.JobID, jobErr error) {
+	log.Warn().Err(jobErr).Str("job", jobID.String()).Msg("k8s dispatch failed")
+	if d.coordinator != nil {
+		d.coordinator.Failed(context.Background(), jobID, jobErr)
 	}
 }
 

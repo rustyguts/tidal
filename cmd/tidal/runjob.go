@@ -72,7 +72,15 @@ func runjobCmd() *cobra.Command {
 			case runErr == nil:
 				return cb.Status(final, jobID, string(domain.JobSucceeded), "")
 			case errors.Is(runErr, context.Canceled):
-				return cb.Status(final, jobID, string(domain.JobCancelled), "")
+				// Pod-level ctx cancel (SIGTERM/SIGINT) means the kubelet is
+				// stopping the container — eviction, rolling deploy, node
+				// drain, or dispatcher-initiated K8s Job delete. Pod
+				// termination is NOT user cancellation, so do not post a
+				// terminal status. The dispatcher decides the final DB
+				// status from the K8s Job condition + DB cancel intent
+				// (see internal/k8s/dispatcher.go).
+				log.Info().Str("job", jobID).Msg("runjob: ctx cancelled, exiting without status update")
+				return nil
 			default:
 				return cb.Status(final, jobID, string(domain.JobFailed), runErr.Error())
 			}

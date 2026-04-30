@@ -5,12 +5,14 @@ metadata:
   name: {{ include "tidal.fullname" . }}-migrate
   labels: {{- include "tidal.labels" . | nindent 4 }}
   annotations:
-    # Run BEFORE the deployments so the schema is in place when servers boot.
-    # We use ArgoCD sync-wave (regular resource, wave 5) instead of a helm
-    # pre-install hook so the migrate Job sees the chart-managed Secrets,
-    # ServiceAccounts, and the Postgres subchart.
-    argocd.argoproj.io/sync-wave: "5"
+    # Sync hook: runs during ArgoCD sync, NOT tracked as a regular resource.
+    # Wave 5 fires before the Deployment waves (10) so schema lands before
+    # servers boot. The Sync phase (vs PreSync) lets the Job reference the
+    # chart-managed Secrets and Postgres subchart that come up in the same
+    # sync round.
+    argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   backoffLimit: 5
   ttlSecondsAfterFinished: 600

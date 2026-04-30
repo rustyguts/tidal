@@ -4,6 +4,8 @@ kind: Role
 metadata:
   name: {{ include "tidal.fullname" . }}-dispatcher
   labels: {{- include "tidal.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 rules:
   - apiGroups: ["batch"]
     resources: ["jobs"]
@@ -23,6 +25,8 @@ kind: RoleBinding
 metadata:
   name: {{ include "tidal.fullname" . }}-dispatcher
   labels: {{- include "tidal.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 subjects:
   - kind: ServiceAccount
     name: {{ include "tidal.dispatcherServiceAccount" . }}

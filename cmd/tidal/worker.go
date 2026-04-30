@@ -128,7 +128,7 @@ func buildRunner(cfg config.Config, jobSvc *jobs.Service) (worker.Runner, error)
 			Resources:         buildJobResources(cfg),
 		}
 		dispatcher := k8s.NewDispatcher(cli, proto)
-		dispatcher.SetCancelChecker(jobSvc)
+		dispatcher.SetCoordinator(jobSvc)
 		return dispatcher, nil
 	default:
 		return nil, fmt.Errorf("unknown dispatcher mode %q", cfg.Dispatcher)
