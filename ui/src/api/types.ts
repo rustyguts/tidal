@@ -6,7 +6,7 @@ export interface Resolution {
 	height: number
 }
 
-// ===== Preset spec V2 =====
+// ===== Preset spec =====
 export type RateMode = 'crf' | 'cbr' | 'vbr' | 'qp' | 'abr' | 'none'
 
 export interface VideoRate {
@@ -114,8 +114,7 @@ export interface ThreadingSpec {
 	filterThreads?: number
 }
 
-export interface PresetSpecV2 {
-	schemaVersion: 2
+export interface PresetSpec {
 	container: ContainerSpec
 	input?: InputSpec
 	hwaccel?: HwaccelSpec | null
@@ -129,16 +128,12 @@ export interface PresetSpecV2 {
 	threading?: ThreadingSpec
 }
 
-// Alias kept for callers that still import `PresetSpec` — V2 is now the
-// canonical shape.
-export type PresetSpec = PresetSpecV2
-
 export interface Preset {
 	id: string
 	name: string
 	description: string
 	builtin: boolean
-	spec: PresetSpecV2
+	spec: PresetSpec
 	createdAt: string
 	updatedAt: string
 }
@@ -226,7 +221,6 @@ export interface Catalog {
 }
 
 export interface SchemaResponse {
-	schemaVersion: number
 	catalog: Catalog
 	schema: Record<string, unknown>
 }
@@ -235,7 +229,7 @@ export interface PreviewResponse {
 	argv: string[]
 	errors?: string[]
 	warnings?: string[]
-	spec: PresetSpecV2
+	spec: PresetSpec
 }
 
 // ===== Jobs / Workflows / System =====
@@ -263,7 +257,7 @@ export interface Job {
 	id: string
 	asynqId?: string
 	presetId: string
-	specSnapshot?: PresetSpecV2
+	specSnapshot?: PresetSpec
 	sourcePath: string
 	outputPath: string
 	cachePath?: string

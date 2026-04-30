@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { usePresetCatalogStore } from './presetCatalog'
+import { api } from '@/api/client'
 import type { Catalog, SchemaResponse } from '@/api/types'
-
 const fakeCatalog: Catalog = {
 	containers: [
 		{ format: 'mp4', mime: 'video/mp4' },
@@ -42,32 +42,23 @@ const fakeCatalog: Catalog = {
 	rawExtrasAllow: [],
 	rawExtrasDeny: []
 }
-
 const fakeSchema: SchemaResponse = {
-	schemaVersion: 2,
 	catalog: fakeCatalog,
-	schema: { title: 'PresetSpecV2' }
+	schema: { title: 'PresetSpec' }
 }
-
-vi.mock('@/api/client', () => ({
-	api: {
-		presets: {
-			schema: vi.fn(async () => fakeSchema)
-		}
-	}
-}))
-
 describe('usePresetCatalogStore', () => {
 	beforeEach(() => {
 		setActivePinia(createPinia())
+		vi.spyOn(api.presets, 'schema').mockResolvedValue(fakeSchema)
 	})
-
+	afterEach(() => {
+		vi.restoreAllMocks()
+	})
 	it('starts empty before load', () => {
 		const s = usePresetCatalogStore()
 		expect(s.catalog).toBeNull()
 		expect(s.videoCodecs).toEqual([])
 	})
-
 	it('loads catalog from /api/presets/schema', async () => {
 		const s = usePresetCatalogStore()
 		await s.load()
@@ -75,7 +66,6 @@ describe('usePresetCatalogStore', () => {
 		expect(s.videoCodecs).toHaveLength(2)
 		expect(s.containers).toHaveLength(2)
 	})
-
 	it('looks up video codec by name', async () => {
 		const s = usePresetCatalogStore()
 		await s.load()
@@ -83,20 +73,17 @@ describe('usePresetCatalogStore', () => {
 		expect(c?.displayName).toBe('H.264')
 		expect(s.videoCodec('nope')).toBeUndefined()
 	})
-
 	it('looks up audio codec by name', async () => {
 		const s = usePresetCatalogStore()
 		await s.load()
 		expect(s.audioCodec('aac')?.displayName).toBe('AAC')
 		expect(s.audioCodec('vorbis')).toBeUndefined()
 	})
-
 	it('looks up hwaccel by type', async () => {
 		const s = usePresetCatalogStore()
 		await s.load()
 		expect(s.hwaccel('nvdec')?.codecNames).toContain('h264_nvenc')
 	})
-
 	it('looks up filter spec', async () => {
 		const s = usePresetCatalogStore()
 		await s.load()
@@ -104,7 +91,6 @@ describe('usePresetCatalogStore', () => {
 		expect(f?.scope).toBe('video')
 		expect(f?.args).toHaveLength(1)
 	})
-
 	it('partitions filters by scope', async () => {
 		const s = usePresetCatalogStore()
 		await s.load()
@@ -115,7 +101,6 @@ describe('usePresetCatalogStore', () => {
 		expect(v[0].name).toBe('scale')
 		expect(a[0].name).toBe('loudnorm')
 	})
-
 	it('skips reload when catalog already cached', async () => {
 		const s = usePresetCatalogStore()
 		await s.load()

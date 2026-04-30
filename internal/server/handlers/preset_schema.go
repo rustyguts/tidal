@@ -10,7 +10,7 @@ import (
 	"github.com/rustyguts/tidal/internal/ffmpeg/catalog"
 )
 
-// PresetSchema serves the catalog + JSON Schema describing PresetSpecV2.
+// PresetSchema serves the catalog + JSON Schema describing PresetSpec.
 // Frontend caches the response and uses it to drive the preset editor's
 // codec-aware dropdowns and field tooltips.
 type PresetSchema struct {
@@ -29,17 +29,15 @@ func NewPresetSchema(cat *catalog.Catalog) *PresetSchema {
 }
 
 type schemaResponse struct {
-	SchemaVersion int              `json:"schemaVersion"`
-	Catalog       *catalog.Catalog `json:"catalog"`
-	Schema        json.RawMessage  `json:"schema"`
+	Catalog *catalog.Catalog `json:"catalog"`
+	Schema  json.RawMessage  `json:"schema"`
 }
 
 func (h *PresetSchema) Get(c echo.Context) error {
 	h.once.Do(func() {
 		body, err := json.Marshal(schemaResponse{
-			SchemaVersion: 2,
-			Catalog:       h.cat,
-			Schema:        catalog.JSONSchema(h.cat),
+			Catalog: h.cat,
+			Schema:  catalog.JSONSchema(h.cat),
 		})
 		if err != nil {
 			h.err = err

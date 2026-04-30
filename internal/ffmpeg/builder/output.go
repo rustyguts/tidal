@@ -6,7 +6,7 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-func output(ctx Context, spec domain.PresetSpecV2) ([]string, error) {
+func output(ctx Context, spec domain.PresetSpec) ([]string, error) {
 	// Pass 1 of two-pass writes to /dev/null with the null muxer.
 	if spec.Video.TwoPass && ctx.Pass == 1 {
 		return []string{"-an", "-f", "null", os.DevNull}, nil

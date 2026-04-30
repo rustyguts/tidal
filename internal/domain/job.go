@@ -8,7 +8,7 @@ type Job struct {
 	PresetID       PresetID       `json:"presetId"`
 	// SpecSnapshot is the preset spec captured at job-submit time. Editing the
 	// referenced preset after submit does not change a queued job's behavior.
-	SpecSnapshot   PresetSpecV2   `json:"specSnapshot"`
+	SpecSnapshot   PresetSpec   `json:"specSnapshot"`
 	SourcePath     string         `json:"sourcePath"`
 	OutputPath     string         `json:"outputPath"`
 	CachePath      string         `json:"cachePath,omitempty"`

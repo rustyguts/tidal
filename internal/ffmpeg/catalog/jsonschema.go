@@ -2,7 +2,7 @@ package catalog
 
 import "encoding/json"
 
-// JSONSchema returns a draft-07 JSON Schema describing PresetSpecV2 derived
+// JSONSchema returns a draft-07 JSON Schema describing PresetSpec derived
 // from the catalog. Cross-field constraints (codec ↔ hwaccel pairing,
 // codec-specific preset enums) are intentionally not expressed here — those
 // live in the Go validator. The schema is for input scaffolding only.
@@ -30,11 +30,10 @@ func JSONSchema(c *Catalog) json.RawMessage {
 
 	schema := map[string]any{
 		"$schema": "http://json-schema.org/draft-07/schema#",
-		"title":   "PresetSpecV2",
+		"title":   "PresetSpec",
 		"type":    "object",
-		"required": []string{"schemaVersion", "container", "video", "audio"},
+		"required": []string{"container", "video", "audio"},
 		"properties": map[string]any{
-			"schemaVersion": map[string]any{"type": "integer", "const": 2},
 			"container": map[string]any{
 				"type": "object",
 				"properties": map[string]any{

@@ -1,4 +1,4 @@
-// Package builder composes the ffmpeg argv from a PresetSpecV2. Each section
+// Package builder composes the ffmpeg argv from a PresetSpec. Each section
 // (input, video, audio, filters...) is a small pure function. The top-level
 // Compose runs them in a fixed order. Validation is a separate concern (see
 // internal/domain/preset_v2_validate.go) — Compose trusts its input.
@@ -20,7 +20,7 @@ type Context struct {
 
 // Section emits a slice of argv tokens for one logical group of flags. Sections
 // returning errors abort the whole compose.
-type Section func(ctx Context, spec domain.PresetSpecV2) ([]string, error)
+type Section func(ctx Context, spec domain.PresetSpec) ([]string, error)
 
 // orderedSections is the canonical compose order. Section ordering matters:
 // global flags must precede -i, -i must precede output options, output options
@@ -40,7 +40,7 @@ var orderedSections = []Section{
 }
 
 // Compose runs every section in order and concatenates the resulting tokens.
-func Compose(ctx Context, spec domain.PresetSpecV2) ([]string, error) {
+func Compose(ctx Context, spec domain.PresetSpec) ([]string, error) {
 	out := make([]string, 0, 64)
 	for _, s := range orderedSections {
 		toks, err := s(ctx, spec)

@@ -19,10 +19,10 @@ type ValidateOpts struct {
 	PermissiveRawExtras bool
 }
 
-// ValidateV2 checks every field of a PresetSpecV2 against the catalog and
+// Validate checks every field of a PresetSpec against the catalog and
 // raw-extras allow/deny rules. Errors are returned as a flat joined message;
 // callers may wrap as needed.
-func ValidateV2(s PresetSpecV2, cat *catalog.Catalog, opts ValidateOpts) error {
+func Validate(s PresetSpec, cat *catalog.Catalog, opts ValidateOpts) error {
 	if cat == nil {
 		return errors.New("validate: catalog is nil")
 	}

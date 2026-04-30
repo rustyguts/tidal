@@ -38,7 +38,7 @@ type previewResponse struct {
 	Warnings []string `json:"warnings,omitempty"`
 	// Spec is the spec after V1→V2 upgrade so the UI sees the canonical V2
 	// shape it should round-trip on save.
-	Spec domain.PresetSpecV2 `json:"spec"`
+	Spec domain.PresetSpec `json:"spec"`
 }
 
 func (h *PresetPreview) Post(c echo.Context) error {
@@ -53,7 +53,7 @@ func (h *PresetPreview) Post(c echo.Context) error {
 		})
 	}
 	resp := previewResponse{Spec: v2}
-	if err := domain.ValidateV2(v2, h.cat, h.opts); err != nil {
+	if err := domain.Validate(v2, h.cat, h.opts); err != nil {
 		resp.Errors = append(resp.Errors, err.Error())
 	}
 

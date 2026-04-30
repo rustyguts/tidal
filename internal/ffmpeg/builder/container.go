@@ -7,7 +7,7 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-func container(_ Context, spec domain.PresetSpecV2) ([]string, error) {
+func container(_ Context, spec domain.PresetSpec) ([]string, error) {
 	out := []string{}
 	flags := uniqueMovFlags(spec.Container.Faststart, spec.Container.MovFlags)
 	if len(flags) > 0 && (spec.Container.Format == "mp4" || spec.Container.Format == "mov") {

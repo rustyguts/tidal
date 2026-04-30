@@ -27,9 +27,6 @@ func TestPresetSchema_Get(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	if doc["schemaVersion"].(float64) != 2 {
-		t.Errorf("schemaVersion = %v", doc["schemaVersion"])
-	}
 	if doc["catalog"] == nil {
 		t.Errorf("catalog missing")
 	}
@@ -51,7 +48,7 @@ func TestPresetSchema_cachesPayload(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Errorf("call %d status %d", i, rec.Code)
 		}
-		if !strings.Contains(rec.Body.String(), "PresetSpecV2") {
+		if !strings.Contains(rec.Body.String(), "PresetSpec") {
 			t.Errorf("call %d body missing schema title", i)
 		}
 	}

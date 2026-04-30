@@ -7,7 +7,7 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-func audio(_ Context, spec domain.PresetSpecV2) ([]string, error) {
+func audio(_ Context, spec domain.PresetSpec) ([]string, error) {
 	if spec.Audio.Disabled {
 		return []string{"-an"}, nil
 	}

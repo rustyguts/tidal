@@ -11,7 +11,7 @@ import (
 // filters merges implicit (resolution, frameRate) and explicit filter chains
 // into a single -vf and/or -af argument. ffmpeg only honors one -vf per
 // output, so synthesizing into a single chain is mandatory.
-func filters(_ Context, spec domain.PresetSpecV2) ([]string, error) {
+func filters(_ Context, spec domain.PresetSpec) ([]string, error) {
 	vchain := buildVideoChain(spec)
 	achain := buildAudioChain(spec)
 	out := []string{}
@@ -24,7 +24,7 @@ func filters(_ Context, spec domain.PresetSpecV2) ([]string, error) {
 	return out, nil
 }
 
-func buildVideoChain(spec domain.PresetSpecV2) []domain.FilterStep {
+func buildVideoChain(spec domain.PresetSpec) []domain.FilterStep {
 	if spec.Video.Codec == "copy" {
 		return nil
 	}
@@ -49,7 +49,7 @@ func buildVideoChain(spec domain.PresetSpecV2) []domain.FilterStep {
 	return chain
 }
 
-func buildAudioChain(spec domain.PresetSpecV2) []domain.FilterStep {
+func buildAudioChain(spec domain.PresetSpec) []domain.FilterStep {
 	if spec.Audio.Codec == "copy" || spec.Audio.Disabled {
 		return nil
 	}

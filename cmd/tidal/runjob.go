@@ -56,7 +56,7 @@ func runjobCmd() *cobra.Command {
 			defer progSink.Close()
 
 			runErr := ffmpeg.Run(ctx, ffmpeg.RunInput{
-				Preset:     spec.Preset,
+				Spec:       spec.Spec,
 				SourcePath: spec.SourcePath,
 				OutputPath: spec.OutputPath,
 				DurationMs: probe.DurationMs,

@@ -29,8 +29,7 @@ func Builtin() []CreateInput {
 			Name:        "h264-1080p",
 			Description: "H.264 1080p, slow preset, AAC 192k — broad compatibility",
 			Builtin:     true,
-			Spec: domain.PresetSpecV2{
-				SchemaVersion: domain.SchemaVersionV2,
+			Spec: domain.PresetSpec{
 				Container:     mp4,
 				Video: domain.VideoSpec{
 					Codec: "libx264", Preset: "slow",
@@ -46,8 +45,7 @@ func Builtin() []CreateInput {
 			Name:        "h264-4k",
 			Description: "H.264 2160p (4K), slow preset, AAC 192k",
 			Builtin:     true,
-			Spec: domain.PresetSpecV2{
-				SchemaVersion: domain.SchemaVersionV2,
+			Spec: domain.PresetSpec{
 				Container:     mp4,
 				Video: domain.VideoSpec{
 					Codec: "libx264", Preset: "slow",
@@ -63,8 +61,7 @@ func Builtin() []CreateInput {
 			Name:        "h265-1080p",
 			Description: "HEVC 1080p, medium preset, AAC 160k — smaller files",
 			Builtin:     true,
-			Spec: domain.PresetSpecV2{
-				SchemaVersion: domain.SchemaVersionV2,
+			Spec: domain.PresetSpec{
 				Container:     mkv,
 				Video: domain.VideoSpec{
 					Codec: "libx265", Preset: "medium",
@@ -80,8 +77,7 @@ func Builtin() []CreateInput {
 			Name:        "av1-1080p",
 			Description: "AV1 (svt-av1) 1080p, preset 4, AAC 160k, MP4 container",
 			Builtin:     true,
-			Spec: domain.PresetSpecV2{
-				SchemaVersion: domain.SchemaVersionV2,
+			Spec: domain.PresetSpec{
 				Container:     mp4,
 				Video: domain.VideoSpec{
 					Codec: "libsvtav1", Preset: "4",
@@ -97,8 +93,7 @@ func Builtin() []CreateInput {
 			Name:        "audio-only-aac",
 			Description: "Strip video, output AAC audio at 192k",
 			Builtin:     true,
-			Spec: domain.PresetSpecV2{
-				SchemaVersion: domain.SchemaVersionV2,
+			Spec: domain.PresetSpec{
 				Container:     mp4,
 				Video:         domain.VideoSpec{Disabled: true},
 				Audio:         domain.AudioSpec{Codec: "aac", Bitrate: "192k"},

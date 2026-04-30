@@ -34,14 +34,11 @@ func postPreview(t *testing.T, body string) *previewResponse {
 	return &resp
 }
 
-func TestPreview_validV1Spec(t *testing.T) {
-	body := `{"spec":{"container":"mp4","videoCodec":"libx264","videoPreset":"slow","crf":20,"audioCodec":"aac","audioBitrate":"192k"}}`
+func TestPreview_validSpec(t *testing.T) {
+	body := `{"spec":{"container":{"format":"mp4"},"video":{"codec":"libx264","preset":"slow","rate":{"mode":"crf","crf":20}},"audio":{"codec":"aac","bitrate":"192k"}}}`
 	resp := postPreview(t, body)
 	if len(resp.Errors) != 0 {
 		t.Errorf("unexpected errors: %v", resp.Errors)
-	}
-	if resp.Spec.SchemaVersion != domain.SchemaVersionV2 {
-		t.Errorf("spec not upgraded: %+v", resp.Spec)
 	}
 	if !containsArg(resp.Argv, "-c:v", "libx264") {
 		t.Errorf("argv missing libx264: %v", resp.Argv)
@@ -49,7 +46,7 @@ func TestPreview_validV1Spec(t *testing.T) {
 }
 
 func TestPreview_invalidCRF(t *testing.T) {
-	body := `{"spec":{"schemaVersion":2,"container":{"format":"mp4"},"video":{"codec":"libx264","rate":{"mode":"crf","crf":99}},"audio":{"codec":"aac"}}}`
+	body := `{"spec":{"container":{"format":"mp4"},"video":{"codec":"libx264","rate":{"mode":"crf","crf":99}},"audio":{"codec":"aac"}}}`
 	resp := postPreview(t, body)
 	if len(resp.Errors) == 0 {
 		t.Errorf("expected validation errors for crf=99")
@@ -57,7 +54,7 @@ func TestPreview_invalidCRF(t *testing.T) {
 }
 
 func TestPreview_unknownCodec(t *testing.T) {
-	body := `{"spec":{"schemaVersion":2,"container":{"format":"mp4"},"video":{"codec":"vc1","rate":{"mode":"crf","crf":20}},"audio":{"codec":"aac"}}}`
+	body := `{"spec":{"container":{"format":"mp4"},"video":{"codec":"vc1","rate":{"mode":"crf","crf":20}},"audio":{"codec":"aac"}}}`
 	resp := postPreview(t, body)
 	if len(resp.Errors) == 0 {
 		t.Errorf("expected error for unknown codec")
@@ -65,7 +62,7 @@ func TestPreview_unknownCodec(t *testing.T) {
 }
 
 func TestPreview_explicitPaths(t *testing.T) {
-	body := `{"spec":{"schemaVersion":2,"container":{"format":"mp4"},"video":{"codec":"libx264","rate":{"mode":"crf","crf":23}},"audio":{"codec":"aac"}},"inputPath":"/in.mov","outputPath":"/out.mp4"}`
+	body := `{"spec":{"container":{"format":"mp4"},"video":{"codec":"libx264","rate":{"mode":"crf","crf":23}},"audio":{"codec":"aac"}},"inputPath":"/in.mov","outputPath":"/out.mp4"}`
 	resp := postPreview(t, body)
 	if !containsArg(resp.Argv, "-i", "/in.mov") {
 		t.Errorf("expected -i /in.mov in argv: %v", resp.Argv)
@@ -107,7 +104,7 @@ func TestPreview_unparseableSpec(t *testing.T) {
 }
 
 func TestPreview_placeholderPaths(t *testing.T) {
-	body := `{"spec":{"schemaVersion":2,"container":{"format":"mp4"},"video":{"codec":"libx264","rate":{"mode":"crf","crf":23}},"audio":{"codec":"aac"}}}`
+	body := `{"spec":{"container":{"format":"mp4"},"video":{"codec":"libx264","rate":{"mode":"crf","crf":23}},"audio":{"codec":"aac"}}}`
 	resp := postPreview(t, body)
 	hasInput := false
 	hasOutput := false

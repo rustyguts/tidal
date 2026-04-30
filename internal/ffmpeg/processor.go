@@ -30,54 +30,18 @@ type Hooks struct {
 	OnLog      func(LogLine)
 }
 
+// RunInput is the input to Run. Spec is the structured preset;
+// SourcePath/OutputPath/DurationMs identify the source + sink.
 type RunInput struct {
-	Preset     domain.PresetSpec
-	SourcePath string
-	OutputPath string
-	DurationMs int64 // optional; if 0, percent stays at 0
-}
-
-// BuildArgs assembles the ffmpeg argv. Routes through the V2 builder by
-// upgrading the V1 preset spec on the fly. Caller passes already-validated
-// input — the builder only returns errors for catastrophic mismatches (e.g.
-// hwaccel/codec conflict), and V1 specs cannot trigger those.
-func BuildArgs(in RunInput, progressURL string) []string {
-	args, err := builder.Compose(builder.Context{
-		InputPath:   in.SourcePath,
-		OutputPath:  in.OutputPath,
-		ProgressURL: progressURL,
-	}, domain.UpgradeFromV1(in.Preset))
-	if err != nil {
-		// V1 inputs cannot reach this branch in practice; fall back to a
-		// minimal argv so callers see a deterministic shape.
-		return []string{"-y", "-i", in.SourcePath, in.OutputPath}
-	}
-	return args
-}
-
-// Run executes ffmpeg with a V1 preset spec. Routes through V2 internally.
-// Single-pass only — V1 specs cannot opt into two-pass; use RunV2 for that.
-func Run(ctx context.Context, in RunInput, hooks Hooks) error {
-	return RunV2(ctx, RunInputV2{
-		Spec:       domain.UpgradeFromV1(in.Preset),
-		SourcePath: in.SourcePath,
-		OutputPath: in.OutputPath,
-		DurationMs: in.DurationMs,
-	}, hooks)
-}
-
-// RunInputV2 is the V2-typed input to RunV2. Spec is the upgraded structured
-// preset; SourcePath/OutputPath/DurationMs mirror RunInput.
-type RunInputV2 struct {
-	Spec       domain.PresetSpecV2
+	Spec       domain.PresetSpec
 	SourcePath string
 	OutputPath string
 	DurationMs int64
 }
 
-// RunV2 executes ffmpeg with a V2 preset spec, handling two-pass when
+// Run executes ffmpeg from a structured preset spec, handling two-pass when
 // requested. Cancels on ctx.Done.
-func RunV2(ctx context.Context, in RunInputV2, hooks Hooks) error {
+func Run(ctx context.Context, in RunInput, hooks Hooks) error {
 	if err := ensureOutputDir(in.OutputPath); err != nil {
 		return err
 	}
@@ -115,8 +79,7 @@ func RunV2(ctx context.Context, in RunInputV2, hooks Hooks) error {
 }
 
 // execFfmpeg runs ffmpeg with the supplied argv, wires progress + log hooks,
-// and propagates ctx cancellation. Reused by Run, RunV2, and each two-pass
-// iteration.
+// and propagates ctx cancellation. Reused by Run and each two-pass iteration.
 func execFfmpeg(ctx context.Context, args []string, durationMs int64, hooks Hooks) error {
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
 	cmd.Cancel = func() error { return cmd.Process.Signal(interruptSignal()) }

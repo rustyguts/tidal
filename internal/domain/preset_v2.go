@@ -2,19 +2,13 @@ package domain
 
 import (
 	"encoding/json"
-	"strings"
 )
 
-// SchemaVersionV2 is the current PresetSpecV2 schema version. Stored in the
-// jsonb spec column on every persisted preset; absent or =1 means legacy v1.
-const SchemaVersionV2 = 2
-
-// PresetSpecV2 is the structured ffmpeg-encode spec. Sections are independently
+// PresetSpec is the structured ffmpeg-encode spec. Sections are independently
 // composed by the builder; cross-field validation lives in
 // preset_v2_validate.go.
-type PresetSpecV2 struct {
-	SchemaVersion int           `json:"schemaVersion"`
-	Container     ContainerSpec `json:"container"`
+type PresetSpec struct {
+	Container ContainerSpec `json:"container"`
 	Input         InputSpec     `json:"input,omitempty"`
 	Hwaccel       *HwaccelSpec  `json:"hwaccel,omitempty"`
 	Video         VideoSpec     `json:"video"`
@@ -158,77 +152,9 @@ type ThreadingSpec struct {
 	FilterThreads int `json:"filterThreads,omitempty"`
 }
 
-// UpgradeFromV1 lifts a legacy flat PresetSpec into a PresetSpecV2 in memory.
-// Pure function — does not persist anything. Faststart is enabled by default
-// for mp4/mov to match the historical (implicit) behavior of media players.
-func UpgradeFromV1(v1 PresetSpec) PresetSpecV2 {
-	cont := strings.ToLower(strings.TrimSpace(v1.Container))
-	v2 := PresetSpecV2{
-		SchemaVersion: SchemaVersionV2,
-		Container: ContainerSpec{
-			Format:    cont,
-			Faststart: cont == "mp4" || cont == "mov",
-		},
-		Video: VideoSpec{
-			Codec:       v1.VideoCodec,
-			Preset:      v1.VideoPreset,
-			PixelFormat: v1.PixelFormat,
-			Resolution:  v1.Resolution,
-			Rate:        VideoRate{Mode: RateModeCRF, CRF: intPtr(v1.CRF)},
-		},
-		Audio: AudioSpec{
-			Codec:   v1.AudioCodec,
-			Bitrate: v1.AudioBitrate,
-		},
-		OutputSuffix: v1.OutputSuffix,
-		RawExtras:    append([]string(nil), v1.ExtraArgs...),
-	}
-	if v1.VideoCodec == "copy" {
-		v2.Video.Rate = VideoRate{Mode: RateModeNone}
-	}
-	if v1.AudioCodec == "" || v1.AudioCodec == "copy" {
-		// Drop bitrate when codec doesn't take one.
-		if v1.AudioCodec == "copy" {
-			v2.Audio.Bitrate = ""
-		}
-	}
-	return v2
-}
-
-func intPtr(v int) *int { return &v }
-
-// detectSchemaVersion peeks at a raw spec jsonb document to decide whether it
-// is v1 (no schemaVersion) or v2.
-func detectSchemaVersion(raw []byte) int {
-	var probe struct {
-		SchemaVersion int `json:"schemaVersion"`
-	}
-	if err := json.Unmarshal(raw, &probe); err != nil {
-		return 1
-	}
-	if probe.SchemaVersion == 0 {
-		return 1
-	}
-	return probe.SchemaVersion
-}
-
-// UnmarshalSpec parses a raw spec jsonb document into a PresetSpecV2,
-// upgrading v1 input on the fly. Use this in repos and migrations rather than
-// json.Unmarshal directly so legacy rows are handled uniformly.
-func UnmarshalSpec(raw []byte) (PresetSpecV2, error) {
-	if detectSchemaVersion(raw) >= SchemaVersionV2 {
-		var v2 PresetSpecV2
-		if err := json.Unmarshal(raw, &v2); err != nil {
-			return PresetSpecV2{}, err
-		}
-		if v2.SchemaVersion == 0 {
-			v2.SchemaVersion = SchemaVersionV2
-		}
-		return v2, nil
-	}
-	var v1 PresetSpec
-	if err := json.Unmarshal(raw, &v1); err != nil {
-		return PresetSpecV2{}, err
-	}
-	return UpgradeFromV1(v1), nil
+// UnmarshalSpec parses a raw spec jsonb document into a PresetSpec.
+func UnmarshalSpec(raw []byte) (PresetSpec, error) {
+	var s PresetSpec
+	err := json.Unmarshal(raw, &s)
+	return s, err
 }

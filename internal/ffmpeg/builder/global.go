@@ -6,7 +6,7 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-func global(ctx Context, spec domain.PresetSpecV2) ([]string, error) {
+func global(ctx Context, spec domain.PresetSpec) ([]string, error) {
 	out := []string{"-y", "-hide_banner", "-nostats", "-loglevel", "info"}
 	if spec.Threading.Threads > 0 {
 		out = append(out, "-threads", strconv.Itoa(spec.Threading.Threads))

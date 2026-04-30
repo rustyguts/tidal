@@ -1,12 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
-
 import PresetEditorView from './PresetEditorView.vue'
 import PresetsView from './PresetsView.vue'
-import type { Catalog, Preset, PresetSpecV2, SchemaResponse } from '@/api/types'
-
+import { api } from '@/api/client'
+import type { Catalog, Preset, PresetSpec, SchemaResponse } from '@/api/types'
 const fakeCatalog: Catalog = {
 	containers: [
 		{ format: 'mp4', mime: 'video/mp4', faststart: true, movflags: ['+faststart'] },
@@ -68,15 +67,11 @@ const fakeCatalog: Catalog = {
 	rawExtrasAllow: [],
 	rawExtrasDeny: []
 }
-
 const fakeSchema: SchemaResponse = {
-	schemaVersion: 2,
 	catalog: fakeCatalog,
-	schema: { title: 'PresetSpecV2' }
+	schema: { title: 'PresetSpec' }
 }
-
-const baseSpec: PresetSpecV2 = {
-	schemaVersion: 2,
+const baseSpec: PresetSpec = {
 	container: { format: 'mp4', faststart: true },
 	video: {
 		codec: 'libx264',
@@ -90,7 +85,6 @@ const baseSpec: PresetSpecV2 = {
 	subtitles: { mode: 'copy' },
 	rawExtras: []
 }
-
 const existing: Preset = {
 	id: 'p1',
 	name: 'test-preset',
@@ -100,32 +94,12 @@ const existing: Preset = {
 	createdAt: '2026-01-01T00:00:00Z',
 	updatedAt: '2026-01-01T00:00:00Z'
 }
-
 const builtinPreset: Preset = { ...existing, id: 'b1', name: 'h264-1080p', builtin: true }
-
-const apiList = vi.fn()
-const apiGet = vi.fn()
-const apiCreate = vi.fn()
-const apiUpdate = vi.fn()
-const apiSchema = vi.fn(async () => fakeSchema)
-const apiPreview = vi.fn(async (_spec: unknown) => ({ argv: ['-y', '-i', '<input>', '<output>'], spec: baseSpec, errors: [] as string[] }))
-
-vi.mock('@/api/client', () => ({
-	api: {
-		presets: {
-			list: (...a: never[]) => apiList(...a),
-			get: (...a: never[]) => apiGet(...a),
-			create: (...a: never[]) => apiCreate(...a),
-			update: (...a: never[]) => apiUpdate(...a),
-			schema: () => apiSchema(),
-			preview: (spec: unknown) => apiPreview(spec),
-			remove: vi.fn(),
-			duplicate: vi.fn(),
-			restoreDefaults: vi.fn()
-		}
-	}
-}))
-
+let apiGet: ReturnType<typeof vi.spyOn>
+let apiCreate: ReturnType<typeof vi.spyOn>
+let apiUpdate: ReturnType<typeof vi.spyOn>
+let apiSchema: ReturnType<typeof vi.spyOn>
+let apiPreview: ReturnType<typeof vi.spyOn>
 function setupRouter(initialPath: string) {
 	const router = createRouter({
 		history: createMemoryHistory(),
@@ -138,7 +112,6 @@ function setupRouter(initialPath: string) {
 	router.push(initialPath)
 	return router
 }
-
 async function mountEditor(initialPath: string) {
 	const router = setupRouter(initialPath)
 	await router.isReady()
@@ -151,25 +124,26 @@ async function mountEditor(initialPath: string) {
 	await flushPromises()
 	return { w, router }
 }
-
 describe('PresetEditorView', () => {
 	beforeEach(() => {
 		setActivePinia(createPinia())
-		apiList.mockReset()
-		apiGet.mockReset()
-		apiCreate.mockReset()
-		apiUpdate.mockReset()
-		apiSchema.mockReset()
-		apiSchema.mockImplementation(async () => fakeSchema)
-		apiPreview.mockReset()
-		apiPreview.mockImplementation(async () => ({ argv: ['-y', '-i', '<input>', '<output>'], spec: baseSpec, errors: [] as string[] }))
+		apiGet = vi.spyOn(api.presets, 'get').mockResolvedValue({} as Preset)
+		apiCreate = vi.spyOn(api.presets, 'create').mockResolvedValue({} as Preset)
+		apiUpdate = vi.spyOn(api.presets, 'update').mockResolvedValue({} as Preset)
+		apiSchema = vi.spyOn(api.presets, 'schema').mockResolvedValue(fakeSchema)
+		apiPreview = vi.spyOn(api.presets, 'preview').mockResolvedValue({
+			argv: ['-y', '-i', '<input>', '<output>'],
+			spec: baseSpec,
+			errors: [] as string[]
+		})
 	})
-
+	afterEach(() => {
+		vi.restoreAllMocks()
+	})
 	it('renders New preset header in /new', async () => {
 		const { w } = await mountEditor('/presets/new')
 		expect(w.text()).toContain('New preset')
 	})
-
 	it('loads existing preset and shows edit header', async () => {
 		apiGet.mockResolvedValue(existing)
 		const { w } = await mountEditor('/presets/p1')
@@ -177,7 +151,6 @@ describe('PresetEditorView', () => {
 		const nameInput = w.find('input[placeholder="my-h264-1080p"]')
 		expect((nameInput.element as HTMLInputElement).value).toBe('test-preset')
 	})
-
 	it('shows builtin warning + Save as new label', async () => {
 		apiGet.mockResolvedValue(builtinPreset)
 		const { w } = await mountEditor('/presets/b1')
@@ -185,14 +158,12 @@ describe('PresetEditorView', () => {
 		const saveBtn = w.findAll('button').find((b) => b.text().includes('Save'))
 		expect(saveBtn?.text()).toContain('Save as new')
 	})
-
 	it('debounced preview is invoked on mount', async () => {
 		apiGet.mockResolvedValue(existing)
 		await mountEditor('/presets/p1')
 		// preview is fired in onMounted and again from the deep-watch.
 		expect(apiPreview).toHaveBeenCalled()
 	})
-
 	it('renders ffmpeg argv from preview', async () => {
 		apiPreview.mockResolvedValue({
 			argv: ['-y', '-c:v', 'libx264', '-crf', '23'],
@@ -202,21 +173,18 @@ describe('PresetEditorView', () => {
 		const { w } = await mountEditor('/presets/new')
 		expect(w.text()).toContain('-c:v libx264 -crf 23')
 	})
-
 	it('surfaces validation errors from preview response', async () => {
 		apiPreview.mockResolvedValue({ argv: [], spec: baseSpec, errors: ['video.codec required'] })
 		const { w } = await mountEditor('/presets/new')
 		expect(w.text()).toContain('Validation errors')
 		expect(w.text()).toContain('video.codec required')
 	})
-
 	it('switching tab reveals different section', async () => {
 		const { w } = await mountEditor('/presets/new')
 		const audioTab = w.findAll('button[role="tab"]').find((b) => b.text() === 'audio')
 		await audioTab!.trigger('click')
 		expect(w.text()).toContain('Disable audio stream')
 	})
-
 	it('changing codec resets incompatible preset', async () => {
 		const { w } = await mountEditor('/presets/new')
 		// Switch codec to NVENC; old preset 'slow' is not in NVENC catalog → cleared.
@@ -232,7 +200,6 @@ describe('PresetEditorView', () => {
 		// We can't easily inspect the v-model; we instead check that the rate.mode also shifted.
 		expect(codecSel).toBeDefined()
 	})
-
 	it('Save in new mode invokes presets.create + navigates', async () => {
 		apiCreate.mockResolvedValue({ ...existing, id: 'newid' })
 		const { w, router } = await mountEditor('/presets/new')
@@ -246,7 +213,6 @@ describe('PresetEditorView', () => {
 		expect(args.name).toBe('brand-new')
 		expect(router.currentRoute.value.params.id).toBe('newid')
 	})
-
 	it('Save error surfaces in alert', async () => {
 		apiCreate.mockRejectedValue(new Error('boom'))
 		const { w } = await mountEditor('/presets/new')
@@ -255,7 +221,6 @@ describe('PresetEditorView', () => {
 		await flushPromises()
 		expect(w.text()).toContain('boom')
 	})
-
 	it('Save in edit mode invokes presets.update', async () => {
 		apiGet.mockResolvedValue(existing)
 		apiUpdate.mockResolvedValue(existing)
@@ -266,7 +231,6 @@ describe('PresetEditorView', () => {
 		expect(apiUpdate).toHaveBeenCalled()
 		expect(apiUpdate.mock.calls[0][0]).toBe('p1')
 	})
-
 	it('Cancel button navigates back to list', async () => {
 		const { w, router } = await mountEditor('/presets/new')
 		const cancelBtn = w.findAll('button').find((b) => b.text() === 'Cancel')
@@ -274,7 +238,6 @@ describe('PresetEditorView', () => {
 		await flushPromises()
 		expect(router.currentRoute.value.name).toBe('presets')
 	})
-
 	it('Reset button restores blank spec on existing non-builtin', async () => {
 		apiGet.mockResolvedValue(existing)
 		const { w } = await mountEditor('/presets/p1')
@@ -283,7 +246,6 @@ describe('PresetEditorView', () => {
 		await resetBtn!.trigger('click')
 		await flushPromises()
 	})
-
 	it('Add video filter appends to chain', async () => {
 		const { w } = await mountEditor('/presets/new')
 		const filtersTab = w.findAll('button[role="tab"]').find((b) => b.text() === 'filters')
@@ -299,7 +261,6 @@ describe('PresetEditorView', () => {
 		await flushPromises()
 		expect(w.text()).toContain('unsharp')
 	})
-
 	it('Hwaccel section selects nvdec', async () => {
 		const { w } = await mountEditor('/presets/new')
 		const hwTab = w.findAll('button[role="tab"]').find((b) => b.text() === 'hwaccel')
@@ -313,14 +274,12 @@ describe('PresetEditorView', () => {
 		await flushPromises()
 		expect(w.text()).toContain('Compatible codecs')
 	})
-
 	it('Container tab swaps format', async () => {
 		const { w } = await mountEditor('/presets/new')
 		const containerTab = w.findAll('button[role="tab"]').find((b) => b.text() === 'container')
 		await containerTab!.trigger('click')
 		expect(w.text()).toContain('Faststart')
 	})
-
 	it('Disable video toggles -vn rendering scope', async () => {
 		const { w } = await mountEditor('/presets/new')
 		const videoTab = w.findAll('button[role="tab"]').find((b) => b.text() === 'video')
@@ -334,7 +293,6 @@ describe('PresetEditorView', () => {
 		// When video disabled, the codec dropdown should disappear.
 		expect(w.text()).toContain('Disable video stream')
 	})
-
 	it('Advanced tab binds raw extras textbox', async () => {
 		const { w } = await mountEditor('/presets/new')
 		const tab = w.findAll('button[role="tab"]').find((b) => b.text() === 'advanced')
@@ -347,18 +305,16 @@ describe('PresetEditorView', () => {
 		await rawInput!.setValue('-map 0:v:0 -map 0:a:0')
 		await flushPromises()
 	})
-
 	it('handles partial v1 spec gracefully', async () => {
 		// Server returns sparse/legacy spec — merge against blank.
 		apiGet.mockResolvedValue({
 			...existing,
-			spec: { schemaVersion: 2, container: { format: 'mkv' } } as unknown as PresetSpecV2
+			spec: { container: { format: 'mkv' } } as unknown as PresetSpec
 		})
 		const { w } = await mountEditor('/presets/p1')
 		// Should not throw.
 		expect(w.text()).toContain('Edit:')
 	})
-
 	it('shows catalog warning when schema endpoint fails', async () => {
 		// Note: mountEditor calls catalogStore.load which fetches schema. Here we
 		// fail it before mount.

@@ -5,7 +5,7 @@ import "github.com/rustyguts/tidal/internal/domain"
 // mapping emits explicit -map tokens. Defaults to ffmpeg's automatic stream
 // selection when nothing is specified — that's the desired behavior for the
 // majority of presets.
-func mapping(_ Context, spec domain.PresetSpecV2) ([]string, error) {
+func mapping(_ Context, spec domain.PresetSpec) ([]string, error) {
 	if len(spec.Mapping.Streams) == 0 && spec.Mapping.Video == "" && spec.Mapping.Audio == "" && spec.Mapping.Subtitle == "" {
 		return nil, nil
 	}

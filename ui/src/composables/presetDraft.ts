@@ -1,10 +1,8 @@
-import type { PresetSpecV2 } from '@/api/types'
-
+import type { PresetSpec } from '@/api/types'
 // blankSpec returns a sensible default V2 spec for a brand-new preset. Saves
 // the editor from a screenful of empty fields when the user clicks "New".
-export function blankSpec(): PresetSpecV2 {
+export function blankSpec(): PresetSpec {
 	return {
-		schemaVersion: 2,
 		container: { format: 'mp4', faststart: true },
 		video: {
 			codec: 'libx264',
@@ -21,7 +19,6 @@ export function blankSpec(): PresetSpecV2 {
 		rawExtras: []
 	}
 }
-
 // debounce returns a function that delays calls by `wait` ms, only firing
 // once after `wait` of inactivity.
 export function debounce<F extends (...args: never[]) => unknown>(fn: F, wait: number): F {

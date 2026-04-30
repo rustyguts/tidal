@@ -80,15 +80,12 @@ type CreateInput struct {
 	Name        string
 	Description string
 	Builtin     bool
-	Spec        domain.PresetSpecV2
+	Spec        domain.PresetSpec
 }
 
 func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Preset, error) {
 	spec := in.Spec
-	if spec.SchemaVersion == 0 {
-		spec.SchemaVersion = domain.SchemaVersionV2
-	}
-	if err := domain.ValidateV2(spec, s.catalog, s.validateOpts); err != nil {
+	if err := domain.Validate(spec, s.catalog, s.validateOpts); err != nil {
 		return domain.Preset{}, fmt.Errorf("preset spec invalid: %w", err)
 	}
 	specJSON, err := json.Marshal(spec)
@@ -114,7 +111,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Preset, er
 type UpdateInput struct {
 	Name        *string
 	Description *string
-	Spec        *domain.PresetSpecV2
+	Spec        *domain.PresetSpec
 }
 
 func (s *Service) Update(ctx context.Context, id domain.PresetID, in UpdateInput) (domain.Preset, error) {
@@ -130,10 +127,7 @@ func (s *Service) Update(ctx context.Context, id domain.PresetID, in UpdateInput
 	}
 	if in.Spec != nil {
 		spec := *in.Spec
-		if spec.SchemaVersion == 0 {
-			spec.SchemaVersion = domain.SchemaVersionV2
-		}
-		if err := domain.ValidateV2(spec, s.catalog, s.validateOpts); err != nil {
+		if err := domain.Validate(spec, s.catalog, s.validateOpts); err != nil {
 			return domain.Preset{}, fmt.Errorf("preset spec invalid: %w", err)
 		}
 		cur.Spec = spec

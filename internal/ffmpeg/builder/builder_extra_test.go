@@ -10,7 +10,7 @@ import (
 
 // Cover gaps in mapping.go.
 func TestMapping_explicitStreamsAndSelectors(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(23)}},
 		Audio:     domain.AudioSpec{Codec: "aac"},
@@ -30,7 +30,7 @@ func TestMapping_explicitStreamsAndSelectors(t *testing.T) {
 }
 
 func TestMapping_noneVideoNoneSubtitle(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(23)}},
 		Audio:     domain.AudioSpec{Codec: "aac"},
@@ -46,7 +46,7 @@ func TestMapping_noneVideoNoneSubtitle(t *testing.T) {
 
 // Hwaccel branches: vaapi, qsv, videotoolbox, unknown.
 func TestHwaccel_vaapi(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "vaapi", Device: "/dev/dri/renderD129", OutputFormat: "vaapi"},
 		Video:     domain.VideoSpec{Codec: "h264_vaapi", Rate: domain.VideoRate{Mode: domain.RateModeCBR, Bitrate: "5M"}},
@@ -59,7 +59,7 @@ func TestHwaccel_vaapi(t *testing.T) {
 }
 
 func TestHwaccel_vaapi_defaultDevice(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "vaapi"},
 		Video:     domain.VideoSpec{Codec: "h264_vaapi", Rate: domain.VideoRate{Mode: domain.RateModeCBR, Bitrate: "5M"}},
@@ -71,7 +71,7 @@ func TestHwaccel_vaapi_defaultDevice(t *testing.T) {
 }
 
 func TestHwaccel_qsv(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "qsv"},
 		Video:     domain.VideoSpec{Codec: "h264_qsv", Rate: domain.VideoRate{Mode: domain.RateModeCBR, Bitrate: "5M"}},
@@ -83,7 +83,7 @@ func TestHwaccel_qsv(t *testing.T) {
 }
 
 func TestHwaccel_qsv_explicitOutputFormat(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "qsv", OutputFormat: "nv12"},
 		Video:     domain.VideoSpec{Codec: "h264_qsv", Rate: domain.VideoRate{Mode: domain.RateModeCBR, Bitrate: "5M"}},
@@ -94,7 +94,7 @@ func TestHwaccel_qsv_explicitOutputFormat(t *testing.T) {
 }
 
 func TestHwaccel_videotoolbox(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "videotoolbox", OutputFormat: "videotoolbox_vld"},
 		Video:     domain.VideoSpec{Codec: "h264_videotoolbox", Rate: domain.VideoRate{Mode: domain.RateModeCBR, Bitrate: "5M"}},
@@ -109,7 +109,7 @@ func TestHwaccel_videotoolbox(t *testing.T) {
 }
 
 func TestHwaccel_unknownType_errors(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "magic"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(23)}},
@@ -121,7 +121,7 @@ func TestHwaccel_unknownType_errors(t *testing.T) {
 }
 
 func TestHwaccel_vaapi_codecMismatch(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "vaapi"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(23)}},
@@ -133,7 +133,7 @@ func TestHwaccel_vaapi_codecMismatch(t *testing.T) {
 }
 
 func TestHwaccel_qsv_codecMismatch(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "qsv"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(23)}},
@@ -146,7 +146,7 @@ func TestHwaccel_qsv_codecMismatch(t *testing.T) {
 
 // Subtitle modes.
 func TestSubtitles_copy(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mkv"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(23)}},
 		Audio:     domain.AudioSpec{Codec: "aac"},
@@ -157,7 +157,7 @@ func TestSubtitles_copy(t *testing.T) {
 }
 
 func TestSubtitles_strip(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(23)}},
 		Audio:     domain.AudioSpec{Codec: "aac"},
@@ -168,7 +168,7 @@ func TestSubtitles_strip(t *testing.T) {
 }
 
 func TestSubtitles_burn_emitsNoFlag(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(23)}},
 		Audio:     domain.AudioSpec{Codec: "aac"},
@@ -181,7 +181,7 @@ func TestSubtitles_burn_emitsNoFlag(t *testing.T) {
 
 // Rate flag branches.
 func TestRateFlags_CBR_minMax(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",
@@ -198,7 +198,7 @@ func TestRateFlags_CBR_minMax(t *testing.T) {
 }
 
 func TestRateFlags_CBR_fallbackToBitrate(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",
@@ -212,7 +212,7 @@ func TestRateFlags_CBR_fallbackToBitrate(t *testing.T) {
 }
 
 func TestRateFlags_VBR_full(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",
@@ -229,7 +229,7 @@ func TestRateFlags_VBR_full(t *testing.T) {
 
 func TestRateFlags_QP(t *testing.T) {
 	qp := 22
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "h264_nvenc",
@@ -243,7 +243,7 @@ func TestRateFlags_QP(t *testing.T) {
 }
 
 func TestRateFlags_CRF_withMaxAndBuf(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",
@@ -262,7 +262,7 @@ func TestGopFlags_full(t *testing.T) {
 	scene := false
 	bf := 3
 	refs := 4
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",
@@ -280,7 +280,7 @@ func TestGopFlags_full(t *testing.T) {
 
 func TestGopFlags_sceneCutTrue(t *testing.T) {
 	scene := true
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",
@@ -295,7 +295,7 @@ func TestGopFlags_sceneCutTrue(t *testing.T) {
 
 // Color and codec extras.
 func TestVideo_color_and_codecExtra(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",
@@ -321,7 +321,7 @@ func TestVideo_color_and_codecExtra(t *testing.T) {
 
 // Global flags: threading + progressURL.
 func TestGlobal_threading_progress(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(20)}},
 		Audio:     domain.AudioSpec{Codec: "aac"},
@@ -336,7 +336,7 @@ func TestGlobal_threading_progress(t *testing.T) {
 // Audio extras: profile, vbrQuality, sample rate, channels.
 func TestAudio_profile_vbr(t *testing.T) {
 	q := 5
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(20)}},
 		Audio:     domain.AudioSpec{Codec: "libopus", SampleRate: 48000, Channels: 2, Profile: "voip", VBRQuality: &q},
@@ -348,7 +348,7 @@ func TestAudio_profile_vbr(t *testing.T) {
 
 // Container: explicit movflags + fragment duration.
 func TestContainer_explicitMovflags(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{
 			Format: "mp4", Faststart: true,
 			MovFlags: []string{"+faststart", "+frag_keyframe"},
@@ -370,7 +370,7 @@ func TestContainer_explicitMovflags(t *testing.T) {
 }
 
 func TestContainer_mkv_skipsMovflags(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mkv", Faststart: true, MovFlags: []string{"+frag_keyframe"}},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(20)}},
 		Audio:     domain.AudioSpec{Codec: "aac"},
@@ -381,7 +381,7 @@ func TestContainer_mkv_skipsMovflags(t *testing.T) {
 
 // Filter chain: audio chain + escaping coverage.
 func TestAudioFilterChain_renders(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video:     domain.VideoSpec{Codec: "libx264", Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(20)}},
 		Audio:     domain.AudioSpec{Codec: "aac"},
@@ -418,7 +418,7 @@ func TestEscapeFilterArg_backslashAndQuote(t *testing.T) {
 // Disabled filter step is skipped.
 func TestFilterStep_disabled_skipped(t *testing.T) {
 	disabled := false
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",

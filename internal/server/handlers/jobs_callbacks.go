@@ -25,7 +25,7 @@ func NewJobCallbacks(jobsSvc *jobs.Service, presetSvc *presets.Service) *JobCall
 
 type jobSpecResponse struct {
 	JobID      uuid.UUID           `json:"jobId"`
-	Preset     domain.PresetSpecV2 `json:"preset"`
+	Spec       domain.PresetSpec `json:"spec"`
 	SourcePath string              `json:"sourcePath"`
 	OutputPath string              `json:"outputPath"`
 	CachePath  string              `json:"cachePath,omitempty"`
@@ -48,7 +48,8 @@ func (h *JobCallbacks) Spec(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, jobSpecResponse{
 		JobID:      j.ID,
-		Preset:     p.Spec,
+		Spec:       p.Spec,
+		// nb: field renamed from Preset → Spec to match V2 jobSpecResponse
 		SourcePath: j.SourcePath,
 		OutputPath: j.OutputPath,
 		CachePath:  j.CachePath,

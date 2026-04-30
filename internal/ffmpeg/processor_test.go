@@ -7,115 +7,10 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-func TestBuildArgs_Simple(t *testing.T) {
-	in := RunInput{
-		SourcePath: "/media/input.mp4",
-		OutputPath: "/media/output.mp4",
-		Preset: domain.PresetSpec{
-			Container:  "mp4",
-			VideoCodec: "libx264",
-			CRF:        23,
-		},
-	}
-	args := BuildArgs(in, "")
-	assertContains(t, args, "-y")
-	assertContains(t, args, "-i")
-	assertContains(t, args, "/media/input.mp4")
-	assertContains(t, args, "-c:v", "libx264")
-	assertContains(t, args, "-crf", "23")
-	assertContains(t, args, "/media/output.mp4")
-	assertNotContains(t, args, "-progress")
-}
-
-func TestBuildArgs_WithProgress(t *testing.T) {
-	in := RunInput{
-		SourcePath: "in.mp4",
-		OutputPath: "out.mp4",
-		Preset: domain.PresetSpec{
-			Container:  "mp4",
-			VideoCodec: "libx264",
-			CRF:        23,
-		},
-	}
-	args := BuildArgs(in, "http://localhost:8080/progress")
-	assertContains(t, args, "-progress", "http://localhost:8080/progress")
-}
-
-func TestBuildArgs_WithResolution(t *testing.T) {
-	in := RunInput{
-		SourcePath: "in.mp4",
-		OutputPath: "out.mp4",
-		Preset: domain.PresetSpec{
-			Container:  "mp4",
-			VideoCodec: "libx264",
-			CRF:        23,
-			Resolution: &domain.Resolution{Width: 1920, Height: 1080},
-		},
-	}
-	args := BuildArgs(in, "")
-	assertContains(t, args, "-vf", "scale=1920:1080")
-}
-
-func TestBuildArgs_PresetOptions(t *testing.T) {
-	in := RunInput{
-		SourcePath: "in.mp4",
-		OutputPath: "out.mp4",
-		Preset: domain.PresetSpec{
-			Container:    "mp4",
-			VideoCodec:   "libx265",
-			VideoPreset:  "slow",
-			CRF:          28,
-			PixelFormat:  "yuv420p",
-			AudioCodec:   "aac",
-			AudioBitrate: "192k",
-			ExtraArgs:    []string{"-tag:v", "hvc1"},
-		},
-	}
-	args := BuildArgs(in, "")
-	assertContains(t, args, "-c:v", "libx265")
-	assertContains(t, args, "-preset", "slow")
-	assertContains(t, args, "-crf", "28")
-	assertContains(t, args, "-pix_fmt", "yuv420p")
-	assertContains(t, args, "-c:a", "aac")
-	assertContains(t, args, "-b:a", "192k")
-	assertContains(t, args, "-tag:v", "hvc1")
-}
-
-func TestBuildArgs_VideoCodecCopy(t *testing.T) {
-	in := RunInput{
-		SourcePath: "in.mp4",
-		OutputPath: "out.mp4",
-		Preset: domain.PresetSpec{
-			Container:   "mp4",
-			VideoCodec:  "copy",
-			VideoPreset: "slow",
-			CRF:         23,
-			PixelFormat: "yuv420p",
-		},
-	}
-	args := BuildArgs(in, "")
-	assertContains(t, args, "-c:v", "copy")
-	assertNotContains(t, args, "-preset")
-	assertNotContains(t, args, "-crf")
-	assertNotContains(t, args, "-pix_fmt")
-}
-
-func TestBuildArgs_AudioCodecCopyNoBitrate(t *testing.T) {
-	in := RunInput{
-		SourcePath: "in.mp4",
-		OutputPath: "out.mp4",
-		Preset: domain.PresetSpec{
-			Container:   "mp4",
-			VideoCodec:  "libx264",
-			CRF:         23,
-			AudioCodec:  "copy",
-			AudioBitrate: "192k",
-		},
-	}
-	args := BuildArgs(in, "")
-	assertContains(t, args, "-c:a", "copy")
-	assertNotContains(t, args, "-b:a")
-}
+// V1 BuildArgs/RunInput were removed when the package switched to V2-only
+// composition (see internal/ffmpeg/builder). Argv assembly is exercised in
+// detail by builder/builder_test.go and builder_extra_test.go; this file
+// covers parsers and stream helpers that live next to the runner.
 
 func TestParseBitrate(t *testing.T) {
 	tests := []struct {
@@ -126,6 +21,8 @@ func TestParseBitrate(t *testing.T) {
 		{"1.5Mbits", 1_500_000},
 		{"N/A", 0},
 		{"", 0},
+		{"500", 500},
+		{"500/s", 500},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
@@ -145,6 +42,7 @@ func TestParseSpeed(t *testing.T) {
 		{"0.5x", 0.5},
 		{"N/A", 0},
 		{"", 0},
+		{"2", 2},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
@@ -210,7 +108,6 @@ progress=end
 }
 
 func TestReadProgress_PercentClamped(t *testing.T) {
-	// time_ms exceeds duration_ms
 	input := "out_time_us=100000000\nprogress=continue\n"
 	var p domain.FFmpegProgress
 	readProgress(strings.NewReader(input), 1000, func(prog domain.FFmpegProgress) {
@@ -225,30 +122,25 @@ func TestReadProgress_NilCallbackDiscards(t *testing.T) {
 	readProgress(strings.NewReader("frame=1\nprogress=continue\n"), 1000, nil)
 }
 
-func assertContains(t *testing.T, args []string, expected ...string) {
-	t.Helper()
-	for _, e := range expected {
-		found := false
-		for _, a := range args {
-			if a == e {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("args %v missing %q", args, e)
-		}
+func TestReadProgress_skipsBlankAndMalformedLines(t *testing.T) {
+	input := "\n  \nnot-a-pair\nframe=42\nprogress=continue\n"
+	var p domain.FFmpegProgress
+	readProgress(strings.NewReader(input), 0, func(prog domain.FFmpegProgress) {
+		p = prog
+	})
+	if p.Frame != 42 {
+		t.Errorf("Frame = %d, want 42", p.Frame)
 	}
 }
 
-func assertNotContains(t *testing.T, args []string, unexpected ...string) {
-	t.Helper()
-	for _, u := range unexpected {
-		for _, a := range args {
-			if a == u {
-				t.Errorf("args %v contains unexpected %q", args, u)
-			}
-		}
+func TestReadProgress_zeroDurationLeavesPercentZero(t *testing.T) {
+	input := "out_time_us=5000000\nprogress=continue\n"
+	var p domain.FFmpegProgress
+	readProgress(strings.NewReader(input), 0, func(prog domain.FFmpegProgress) {
+		p = prog
+	})
+	if p.Percent != 0 {
+		t.Errorf("Percent = %f, want 0 when duration unknown", p.Percent)
 	}
 }
 
@@ -270,5 +162,29 @@ func TestReadLogs_WithCallback(t *testing.T) {
 	}
 	if logs[0].Line != "line1" {
 		t.Errorf("Line = %q, want line1", logs[0].Line)
+	}
+}
+
+func TestEnsureOutputDir_skipsRoot(t *testing.T) {
+	if err := ensureOutputDir(""); err != nil {
+		t.Errorf("empty path should be a no-op, got %v", err)
+	}
+	if err := ensureOutputDir("file.mp4"); err != nil {
+		t.Errorf(". path should be a no-op, got %v", err)
+	}
+}
+
+func TestEnsureOutputDir_createsDir(t *testing.T) {
+	tmp := t.TempDir()
+	if err := ensureOutputDir(tmp + "/sub/out.mp4"); err != nil {
+		t.Errorf("expected mkdir to succeed, got %v", err)
+	}
+}
+
+func TestRunV2_validatesOutputDir(t *testing.T) {
+	// Pass an unwritable parent so ensureOutputDir reports an error path.
+	// Skip on non-POSIX where /proc may not exist.
+	if err := ensureOutputDir("/proc/1/clearly-not-writable/x"); err == nil {
+		t.Skip("could not provoke mkdir error in this env")
 	}
 }

@@ -2,9 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { blankSpec, debounce } from './presetDraft'
 
 describe('blankSpec', () => {
-	it('returns a v2 schema-versioned spec', () => {
+	it('returns a sensible default spec', () => {
 		const s = blankSpec()
-		expect(s.schemaVersion).toBe(2)
 		expect(s.container.format).toBe('mp4')
 		expect(s.container.faststart).toBe(true)
 	})

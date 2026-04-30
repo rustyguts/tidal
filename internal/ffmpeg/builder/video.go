@@ -8,7 +8,7 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-func video(ctx Context, spec domain.PresetSpecV2) ([]string, error) {
+func video(ctx Context, spec domain.PresetSpec) ([]string, error) {
 	if spec.Video.Disabled {
 		return []string{"-vn"}, nil
 	}

@@ -30,16 +30,16 @@ describe('api client', () => {
 	it('GET /api/presets/schema', async () => {
 		const fetchMock = vi.mocked(fetch)
 		fetchMock.mockResolvedValue(
-			mockResponse({ schemaVersion: 2, catalog: { videoCodecs: [] }, schema: {} })
+			mockResponse({ catalog: { videoCodecs: [] }, schema: {} })
 		)
 		const r = await api.presets.schema()
-		expect(r.schemaVersion).toBe(2)
+		expect(r.catalog).toBeDefined()
 	})
 
 	it('POST /api/presets/preview serializes spec body', async () => {
 		const fetchMock = vi.mocked(fetch)
-		fetchMock.mockResolvedValue(mockResponse({ argv: ['ffmpeg', '-i'], spec: { schemaVersion: 2 } }))
-		const spec = { schemaVersion: 2 } as never
+		fetchMock.mockResolvedValue(mockResponse({ argv: ['ffmpeg', '-i'], spec: {} }))
+		const spec = {} as never
 		await api.presets.preview(spec)
 		const init = fetchMock.mock.calls[0][1] as RequestInit
 		expect(init.method).toBe('POST')
@@ -88,7 +88,7 @@ describe('api client', () => {
 	it('presets.create sends POST with spec body', async () => {
 		const fetchMock = vi.mocked(fetch)
 		fetchMock.mockResolvedValue(mockResponse({ id: 'x' }))
-		await api.presets.create({ name: 'foo', spec: { schemaVersion: 2 } as never })
+		await api.presets.create({ name: 'foo', spec: {} as never })
 		const [url, init] = fetchMock.mock.calls[0]
 		expect(url).toBe('/api/presets')
 		expect((init as RequestInit).method).toBe('POST')

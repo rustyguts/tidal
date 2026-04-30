@@ -1,6 +1,6 @@
 package catalog
 
-// rawExtrasAllow is the regex allowlist for tokens permitted in PresetSpecV2.RawExtras.
+// rawExtrasAllow is the regex allowlist for tokens permitted in PresetSpec.RawExtras.
 // Order does not matter — first match wins after deny is checked.
 func rawExtrasAllow() []string {
 	return []string{

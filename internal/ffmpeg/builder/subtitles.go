@@ -2,7 +2,7 @@ package builder
 
 import "github.com/rustyguts/tidal/internal/domain"
 
-func subtitles(_ Context, spec domain.PresetSpecV2) ([]string, error) {
+func subtitles(_ Context, spec domain.PresetSpec) ([]string, error) {
 	switch spec.Subtitles.Mode {
 	case domain.SubtitleStrip:
 		return []string{"-sn"}, nil

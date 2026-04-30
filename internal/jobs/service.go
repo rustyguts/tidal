@@ -238,7 +238,7 @@ func (s *Service) Run(ctx context.Context, id domain.JobID) error {
 		},
 	}
 
-	runErr := ffmpeg.RunV2(ctx, ffmpeg.RunInputV2{
+	runErr := ffmpeg.Run(ctx, ffmpeg.RunInput{
 		Spec:       j.SpecSnapshot,
 		SourcePath: j.SourcePath,
 		OutputPath: j.OutputPath,

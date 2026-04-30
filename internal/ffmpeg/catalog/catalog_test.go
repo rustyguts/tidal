@@ -62,7 +62,7 @@ func TestJSONSchema_marshallable(t *testing.T) {
 	if err := json.Unmarshal(raw, &doc); err != nil {
 		t.Fatalf("schema is not valid JSON: %v", err)
 	}
-	if doc["title"] != "PresetSpecV2" {
+	if doc["title"] != "PresetSpec" {
 		t.Errorf("title = %v", doc["title"])
 	}
 	props, ok := doc["properties"].(map[string]any)

@@ -15,11 +15,11 @@ import (
 
 // JobSpecResponse mirrors the Go server's `/api/internal/jobs/:id/spec` body.
 type JobSpecResponse struct {
-	JobID      string            `json:"jobId"`
-	Preset     domain.PresetSpec `json:"preset"`
-	SourcePath string            `json:"sourcePath"`
-	OutputPath string            `json:"outputPath"`
-	CachePath  string            `json:"cachePath,omitempty"`
+	JobID      string              `json:"jobId"`
+	Spec       domain.PresetSpec `json:"spec"`
+	SourcePath string              `json:"sourcePath"`
+	OutputPath string              `json:"outputPath"`
+	CachePath  string              `json:"cachePath,omitempty"`
 }
 
 // CallbackClient is used by `tidal runjob` to fetch the spec and post status,

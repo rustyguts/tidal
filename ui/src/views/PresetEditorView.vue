@@ -5,7 +5,7 @@ import { storeToRefs } from 'pinia'
 
 import { api } from '@/api/client'
 import type {
-	PresetSpecV2,
+	PresetSpec,
 	FilterStep,
 	PreviewResponse,
 	CatalogFilter
@@ -27,7 +27,7 @@ const isNew = computed(() => route.params.id === 'new' || !route.params.id)
 const name = ref('')
 const description = ref('')
 const builtin = ref(false)
-const draft = reactive<PresetSpecV2>(blankSpec())
+const draft = reactive<PresetSpec>(blankSpec())
 const activeTab = ref<'container' | 'video' | 'audio' | 'filters' | 'hwaccel' | 'advanced'>('video')
 
 const previewArgv = ref<string[]>([])
@@ -60,7 +60,7 @@ onMounted(async () => {
 			// returns a partial spec (e.g. legacy v1 jsonb that hasn't been
 			// upgraded server-side).
 			const base = blankSpec()
-			const merged: PresetSpecV2 = {
+			const merged: PresetSpec = {
 				...base,
 				...p.spec,
 				container: { ...base.container, ...(p.spec?.container ?? {}) },

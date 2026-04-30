@@ -7,7 +7,7 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-func mustCompose(t *testing.T, ctx Context, spec domain.PresetSpecV2) []string {
+func mustCompose(t *testing.T, ctx Context, spec domain.PresetSpec) []string {
 	t.Helper()
 	args, err := Compose(ctx, spec)
 	if err != nil {
@@ -17,9 +17,8 @@ func mustCompose(t *testing.T, ctx Context, spec domain.PresetSpecV2) []string {
 }
 
 func TestCompose_h264_basic(t *testing.T) {
-	spec := domain.PresetSpecV2{
-		SchemaVersion: domain.SchemaVersionV2,
-		Container:     domain.ContainerSpec{Format: "mp4", Faststart: true},
+	spec := domain.PresetSpec{
+		Container: domain.ContainerSpec{Format: "mp4", Faststart: true},
 		Video: domain.VideoSpec{
 			Codec: "libx264", Preset: "slow",
 			Rate: domain.VideoRate{Mode: domain.RateModeCRF, CRF: intPtr(20)},
@@ -37,7 +36,7 @@ func TestCompose_h264_basic(t *testing.T) {
 }
 
 func TestCompose_copy_passthrough(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "copy",
@@ -54,7 +53,7 @@ func TestCompose_copy_passthrough(t *testing.T) {
 }
 
 func TestCompose_resolution_emitsScale(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec:      "libx264",
@@ -68,7 +67,7 @@ func TestCompose_resolution_emitsScale(t *testing.T) {
 }
 
 func TestCompose_filters_chain(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec:      "libx264",
@@ -110,7 +109,7 @@ func TestCompose_filterEscape_pathColons(t *testing.T) {
 }
 
 func TestCompose_hwaccel_mismatch_errors(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "nvdec"},
 		Video: domain.VideoSpec{
@@ -125,7 +124,7 @@ func TestCompose_hwaccel_mismatch_errors(t *testing.T) {
 }
 
 func TestCompose_hwaccel_nvdec_pairing(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Hwaccel:   &domain.HwaccelSpec{Type: "nvdec"},
 		Video: domain.VideoSpec{
@@ -141,7 +140,7 @@ func TestCompose_hwaccel_nvdec_pairing(t *testing.T) {
 }
 
 func TestCompose_twoPass_pass1_emitsNullMuxer(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec:   "libx264",
@@ -163,7 +162,7 @@ func TestCompose_twoPass_pass1_emitsNullMuxer(t *testing.T) {
 }
 
 func TestCompose_disabled_video(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video:     domain.VideoSpec{Disabled: true},
 		Audio:     domain.AudioSpec{Codec: "aac", Bitrate: "192k"},
@@ -174,7 +173,7 @@ func TestCompose_disabled_video(t *testing.T) {
 }
 
 func TestCompose_audio_disabled(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",
@@ -188,7 +187,7 @@ func TestCompose_audio_disabled(t *testing.T) {
 }
 
 func TestCompose_audio_extras(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Video: domain.VideoSpec{
 			Codec: "libx264",
@@ -201,25 +200,8 @@ func TestCompose_audio_extras(t *testing.T) {
 	requirePair(t, args, "-ac", "2")
 }
 
-func TestCompose_v1_upgrade_audio_only_preset(t *testing.T) {
-	// Audio-only builtin: video codec=copy + ExtraArgs=[-vn].
-	v1 := domain.PresetSpec{
-		Container:    "mp4",
-		VideoCodec:   "copy",
-		AudioCodec:   "aac",
-		AudioBitrate: "192k",
-		ExtraArgs:    []string{"-vn"},
-	}
-	v2 := domain.UpgradeFromV1(v1)
-	args := mustCompose(t, Context{InputPath: "in", OutputPath: "out"}, v2)
-	requirePair(t, args, "-c:v", "copy")
-	requirePair(t, args, "-c:a", "aac")
-	requirePair(t, args, "-b:a", "192k")
-	requireToken(t, args, "-vn")
-}
-
 func TestCompose_input_seek_duration(t *testing.T) {
-	spec := domain.PresetSpecV2{
+	spec := domain.PresetSpec{
 		Container: domain.ContainerSpec{Format: "mp4"},
 		Input:     domain.InputSpec{SeekStart: "00:01:30", Duration: "30"},
 		Video: domain.VideoSpec{

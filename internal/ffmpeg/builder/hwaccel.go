@@ -10,7 +10,7 @@ import (
 // hwaccelInput emits pre-input hardware-acceleration flags. Cross-checks the
 // hwaccel type against the chosen video codec family — mismatched pairings
 // fail here with a structured error rather than at ffmpeg runtime.
-func hwaccelInput(_ Context, spec domain.PresetSpecV2) ([]string, error) {
+func hwaccelInput(_ Context, spec domain.PresetSpec) ([]string, error) {
 	if spec.Hwaccel == nil || spec.Hwaccel.Type == "" || spec.Hwaccel.Type == "none" {
 		return nil, nil
 	}

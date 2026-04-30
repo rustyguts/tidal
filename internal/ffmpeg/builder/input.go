@@ -7,7 +7,7 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-func input(ctx Context, spec domain.PresetSpecV2) ([]string, error) {
+func input(ctx Context, spec domain.PresetSpec) ([]string, error) {
 	out := []string{}
 	if ss := strings.TrimSpace(spec.Input.SeekStart); ss != "" {
 		out = append(out, "-ss", ss)
