@@ -15,7 +15,6 @@ coverage/
 
 # Bun / Node
 node_modules/
-bun.lock
 bun.lockb
 
 # Build output
