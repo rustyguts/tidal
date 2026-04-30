@@ -56,13 +56,24 @@ onMounted(async () => {
 			name.value = p.name
 			description.value = p.description
 			builtin.value = p.builtin
-			Object.assign(draft, p.spec)
-			// Ensure nested defaults exist so v-model bindings don't error.
-			draft.filters = draft.filters ?? { video: [], audio: [] }
-			draft.filters.video = draft.filters.video ?? []
-			draft.filters.audio = draft.filters.audio ?? []
-			draft.subtitles = draft.subtitles ?? { mode: 'copy' }
-			draft.rawExtras = draft.rawExtras ?? []
+			// Merge against blank to fill missing nested keys when the server
+			// returns a partial spec (e.g. legacy v1 jsonb that hasn't been
+			// upgraded server-side).
+			const base = blankSpec()
+			const merged: PresetSpecV2 = {
+				...base,
+				...p.spec,
+				container: { ...base.container, ...(p.spec?.container ?? {}) },
+				video: { ...base.video, ...(p.spec?.video ?? {}) },
+				audio: { ...base.audio, ...(p.spec?.audio ?? {}) },
+				filters: {
+					video: p.spec?.filters?.video ?? [],
+					audio: p.spec?.filters?.audio ?? []
+				},
+				subtitles: { mode: 'copy', ...(p.spec?.subtitles ?? {}) },
+				rawExtras: p.spec?.rawExtras ?? []
+			}
+			Object.assign(draft, merged)
 		} catch (e) {
 			saveError.value = e instanceof Error ? e.message : String(e)
 		}

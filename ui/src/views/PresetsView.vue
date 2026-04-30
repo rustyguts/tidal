@@ -34,7 +34,8 @@ async function duplicate(id: string, currentName: string) {
 	router.push({ name: 'preset-edit', params: { id: created.id } })
 }
 
-function shortRate(rate: { mode: string; crf?: number; qp?: number; bitrate?: string }): string {
+function shortRate(rate?: { mode: string; crf?: number; qp?: number; bitrate?: string }): string {
+	if (!rate) return '—'
 	if (rate.mode === 'crf' && rate.crf != null) return `crf ${rate.crf}`
 	if (rate.mode === 'qp' && rate.qp != null) return `qp ${rate.qp}`
 	if (rate.bitrate) return `${rate.mode} ${rate.bitrate}`
@@ -77,15 +78,15 @@ function shortRate(rate: { mode: string; crf?: number; qp?: number; bitrate?: st
 					</div>
 					<p class="text-sm text-base-content/60">{{ p.description || '—' }}</p>
 					<dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-2">
-						<dt class="text-base-content/50">codec</dt><dd class="font-mono">{{ p.spec.video.codec || (p.spec.video.disabled ? '(none)' : '—') }}</dd>
-						<dt class="text-base-content/50">rate</dt><dd class="font-mono">{{ shortRate(p.spec.video.rate) }}</dd>
-						<dt class="text-base-content/50">container</dt><dd class="font-mono">{{ p.spec.container.format }}</dd>
+						<dt class="text-base-content/50">codec</dt><dd class="font-mono">{{ p.spec?.video?.codec || (p.spec?.video?.disabled ? '(none)' : '—') }}</dd>
+						<dt class="text-base-content/50">rate</dt><dd class="font-mono">{{ shortRate(p.spec?.video?.rate) }}</dd>
+						<dt class="text-base-content/50">container</dt><dd class="font-mono">{{ p.spec?.container?.format ?? '—' }}</dd>
 						<dt class="text-base-content/50">res</dt>
-						<dd class="font-mono">{{ p.spec.video.resolution ? `${p.spec.video.resolution.width}×${p.spec.video.resolution.height}` : '—' }}</dd>
-						<dt v-if="p.spec.video.twoPass" class="text-base-content/50">passes</dt>
-						<dd v-if="p.spec.video.twoPass" class="font-mono">2-pass</dd>
-						<dt v-if="p.spec.hwaccel?.type && p.spec.hwaccel.type !== 'none'" class="text-base-content/50">hwaccel</dt>
-						<dd v-if="p.spec.hwaccel?.type && p.spec.hwaccel.type !== 'none'" class="font-mono">{{ p.spec.hwaccel.type }}</dd>
+						<dd class="font-mono">{{ p.spec?.video?.resolution ? `${p.spec.video.resolution.width}×${p.spec.video.resolution.height}` : '—' }}</dd>
+						<dt v-if="p.spec?.video?.twoPass" class="text-base-content/50">passes</dt>
+						<dd v-if="p.spec?.video?.twoPass" class="font-mono">2-pass</dd>
+						<dt v-if="p.spec?.hwaccel?.type && p.spec.hwaccel.type !== 'none'" class="text-base-content/50">hwaccel</dt>
+						<dd v-if="p.spec?.hwaccel?.type && p.spec.hwaccel.type !== 'none'" class="font-mono">{{ p.spec.hwaccel.type }}</dd>
 					</dl>
 					<div class="card-actions justify-end mt-2" @click.stop>
 						<Button variant="ghost" size="xs" @click="duplicate(p.id, p.name)">Duplicate</Button>
