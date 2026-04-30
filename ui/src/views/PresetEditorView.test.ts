@@ -305,8 +305,8 @@ describe('PresetEditorView', () => {
 		await rawInput!.setValue('-map 0:v:0 -map 0:a:0')
 		await flushPromises()
 	})
-	it('handles partial v1 spec gracefully', async () => {
-		// Server returns sparse/legacy spec — merge against blank.
+	it('handles partial spec gracefully', async () => {
+		// Server returns sparse spec — merge against blank.
 		apiGet.mockResolvedValue({
 			...existing,
 			spec: { container: { format: 'mkv' } } as unknown as PresetSpec

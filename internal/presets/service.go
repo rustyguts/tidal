@@ -197,11 +197,11 @@ func scanPreset(r rowScanner) (domain.Preset, error) {
 	if descNull != nil {
 		p.Description = *descNull
 	}
-	v2, err := domain.UnmarshalSpec(specRaw)
+	spec, err := domain.UnmarshalSpec(specRaw)
 	if err != nil {
 		return domain.Preset{}, fmt.Errorf("unmarshal spec for %s: %w", p.ID, err)
 	}
-	p.Spec = v2
+	p.Spec = spec
 	return p, nil
 }
 

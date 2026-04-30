@@ -49,7 +49,6 @@ func (h *JobCallbacks) Spec(c echo.Context) error {
 	return c.JSON(http.StatusOK, jobSpecResponse{
 		JobID:      j.ID,
 		Spec:       p.Spec,
-		// nb: field renamed from Preset → Spec to match V2 jobSpecResponse
 		SourcePath: j.SourcePath,
 		OutputPath: j.OutputPath,
 		CachePath:  j.CachePath,
