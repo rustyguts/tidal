@@ -3,23 +3,22 @@ import { mount } from '@vue/test-utils'
 import ProgressBar from './ProgressBar.vue'
 
 describe('ProgressBar', () => {
-	it('renders the bar with correct width', () => {
+	it('renders a daisyUI progress element', () => {
 		const wrapper = mount(ProgressBar, { props: { percent: 50 } })
-		const bar = wrapper.find('.bg-tidal-500')
+		const bar = wrapper.find('progress.progress')
 		expect(bar.exists()).toBe(true)
-		expect(bar.attributes('style')).toContain('width: 50%')
+		expect(bar.attributes('value')).toBe('50')
+		expect(bar.attributes('max')).toBe('100')
 	})
 
-	it('clamps percent to 0-100', () => {
+	it('clamps percent to 0', () => {
 		const wrapper = mount(ProgressBar, { props: { percent: -10 } })
-		const bar = wrapper.find('.bg-tidal-500')
-		expect(bar.attributes('style')).toContain('width: 0%')
+		expect(wrapper.find('progress').attributes('value')).toBe('0')
 	})
 
 	it('clamps percent above 100', () => {
 		const wrapper = mount(ProgressBar, { props: { percent: 150 } })
-		const bar = wrapper.find('.bg-tidal-500')
-		expect(bar.attributes('style')).toContain('width: 100%')
+		expect(wrapper.find('progress').attributes('value')).toBe('100')
 	})
 
 	it('renders label and percentage when label provided', () => {

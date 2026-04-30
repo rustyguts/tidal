@@ -11,11 +11,12 @@ describe('EmptyState', () => {
 	it('renders hint when provided', () => {
 		const wrapper = mount(EmptyState, { props: { title: 'Empty', hint: 'Create something' } })
 		expect(wrapper.text()).toContain('Create something')
+		expect(wrapper.findAll('p').length).toBeGreaterThanOrEqual(1)
 	})
 
 	it('does not render hint when not provided', () => {
 		const wrapper = mount(EmptyState, { props: { title: 'Empty' } })
-		expect(wrapper.find('p.mt-1').exists()).toBe(false)
+		expect(wrapper.findAll('p').length).toBe(0)
 	})
 
 	it('renders default slot', () => {
