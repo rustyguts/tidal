@@ -139,6 +139,8 @@ app.kubernetes.io/component: worker
   value: {{ default (include "tidal.image" .) .Values.dispatcher.jobTemplate.image | quote }}
 - name: TIDAL_DISPATCHER_JOB_SERVICE_ACCOUNT
   value: {{ include "tidal.dispatcherServiceAccount" . }}
+- name: TIDAL_DISPATCHER_CALLBACK_SECRET_NAME
+  value: {{ include "tidal.callbackSecretName" . }}
 - name: TIDAL_SERVER_INTERNAL_URL
   value: http://{{ include "tidal.fullname" . }}-server.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
 {{- $pvc := include "tidal.mediaPVC" . }}
