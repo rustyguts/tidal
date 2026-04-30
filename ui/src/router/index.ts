@@ -5,6 +5,7 @@ const routes: RouteRecordRaw[] = [
 	{ path: '/jobs', name: 'jobs', component: () => import('@/views/JobsView.vue'), meta: { title: 'Jobs' } },
 	{ path: '/jobs/:id', name: 'job-detail', component: () => import('@/views/JobDetailView.vue'), meta: { title: 'Job' } },
 	{ path: '/presets', name: 'presets', component: () => import('@/views/PresetsView.vue'), meta: { title: 'Presets' } },
+	{ path: '/presets/new', name: 'preset-new', component: () => import('@/views/PresetEditorView.vue'), meta: { title: 'New preset' } },
 	{ path: '/presets/:id', name: 'preset-edit', component: () => import('@/views/PresetEditorView.vue'), meta: { title: 'Edit preset' } },
 	{ path: '/workflows', name: 'workflows', component: () => import('@/views/WorkflowsView.vue'), meta: { title: 'Workflows' } },
 	{ path: '/workflows/new', name: 'workflow-new', component: () => import('@/views/WorkflowEditorView.vue'), meta: { title: 'New workflow' } },

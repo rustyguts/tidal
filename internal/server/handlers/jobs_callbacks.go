@@ -24,11 +24,11 @@ func NewJobCallbacks(jobsSvc *jobs.Service, presetSvc *presets.Service) *JobCall
 }
 
 type jobSpecResponse struct {
-	JobID      uuid.UUID         `json:"jobId"`
-	Preset     domain.PresetSpec `json:"preset"`
-	SourcePath string            `json:"sourcePath"`
-	OutputPath string            `json:"outputPath"`
-	CachePath  string            `json:"cachePath,omitempty"`
+	JobID      uuid.UUID           `json:"jobId"`
+	Preset     domain.PresetSpecV2 `json:"preset"`
+	SourcePath string              `json:"sourcePath"`
+	OutputPath string              `json:"outputPath"`
+	CachePath  string              `json:"cachePath,omitempty"`
 }
 
 // Spec returns the resolved JobSpec needed by `tidal runjob`. The pod has no

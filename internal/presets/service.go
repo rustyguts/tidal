@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/rustyguts/tidal/internal/domain"
+	"github.com/rustyguts/tidal/internal/ffmpeg/catalog"
 )
 
 var (
@@ -20,11 +21,19 @@ var (
 )
 
 type Service struct {
-	pool *pgxpool.Pool
+	pool         *pgxpool.Pool
+	catalog      *catalog.Catalog
+	validateOpts domain.ValidateOpts
 }
 
-func New(pool *pgxpool.Pool) *Service {
-	return &Service{pool: pool}
+// New constructs the preset service. Catalog drives V2 schema validation;
+// pass catalog.Default() unless tests need a tailored fixture. ValidateOpts
+// lets the caller flip raw-extras into permissive mode (default: strict).
+func New(pool *pgxpool.Pool, cat *catalog.Catalog, opts domain.ValidateOpts) *Service {
+	if cat == nil {
+		cat = catalog.Default()
+	}
+	return &Service{pool: pool, catalog: cat, validateOpts: opts}
 }
 
 const (
@@ -71,14 +80,18 @@ type CreateInput struct {
 	Name        string
 	Description string
 	Builtin     bool
-	Spec        domain.PresetSpec
+	Spec        domain.PresetSpecV2
 }
 
 func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Preset, error) {
-	if err := in.Spec.Validate(); err != nil {
-		return domain.Preset{}, err
+	spec := in.Spec
+	if spec.SchemaVersion == 0 {
+		spec.SchemaVersion = domain.SchemaVersionV2
 	}
-	specJSON, err := json.Marshal(in.Spec)
+	if err := domain.ValidateV2(spec, s.catalog, s.validateOpts); err != nil {
+		return domain.Preset{}, fmt.Errorf("preset spec invalid: %w", err)
+	}
+	specJSON, err := json.Marshal(spec)
 	if err != nil {
 		return domain.Preset{}, fmt.Errorf("marshal spec: %w", err)
 	}
@@ -101,7 +114,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Preset, er
 type UpdateInput struct {
 	Name        *string
 	Description *string
-	Spec        *domain.PresetSpec
+	Spec        *domain.PresetSpecV2
 }
 
 func (s *Service) Update(ctx context.Context, id domain.PresetID, in UpdateInput) (domain.Preset, error) {
@@ -116,10 +129,14 @@ func (s *Service) Update(ctx context.Context, id domain.PresetID, in UpdateInput
 		cur.Description = *in.Description
 	}
 	if in.Spec != nil {
-		if err := in.Spec.Validate(); err != nil {
-			return domain.Preset{}, err
+		spec := *in.Spec
+		if spec.SchemaVersion == 0 {
+			spec.SchemaVersion = domain.SchemaVersionV2
 		}
-		cur.Spec = *in.Spec
+		if err := domain.ValidateV2(spec, s.catalog, s.validateOpts); err != nil {
+			return domain.Preset{}, fmt.Errorf("preset spec invalid: %w", err)
+		}
+		cur.Spec = spec
 	}
 	specJSON, err := json.Marshal(cur.Spec)
 	if err != nil {
@@ -186,9 +203,11 @@ func scanPreset(r rowScanner) (domain.Preset, error) {
 	if descNull != nil {
 		p.Description = *descNull
 	}
-	if err := json.Unmarshal(specRaw, &p.Spec); err != nil {
+	v2, err := domain.UnmarshalSpec(specRaw)
+	if err != nil {
 		return domain.Preset{}, fmt.Errorf("unmarshal spec for %s: %w", p.ID, err)
 	}
+	p.Spec = v2
 	return p, nil
 }
 

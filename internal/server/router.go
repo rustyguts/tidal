@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/labstack/echo/v4"
 
+	"github.com/rustyguts/tidal/internal/domain"
 	"github.com/rustyguts/tidal/internal/metrics"
 	"github.com/rustyguts/tidal/internal/realtime"
 	"github.com/rustyguts/tidal/internal/server/handlers"
@@ -21,6 +22,14 @@ func mountRoutes(e *echo.Echo, deps Deps) {
 	pres := handlers.NewPresets(deps.Presets)
 	api.GET("/presets", pres.List)
 	api.POST("/presets", pres.Create)
+	// /presets/schema and /presets/preview are matched first and not parsed
+	// as :id because Echo's router is path-prefix sensitive.
+	presSchema := handlers.NewPresetSchema(deps.Catalog)
+	presPreview := handlers.NewPresetPreview(deps.Catalog, domain.ValidateOpts{
+		PermissiveRawExtras: deps.Config.PresetRawExtrasPermissive,
+	})
+	api.GET("/presets/schema", presSchema.Get)
+	api.POST("/presets/preview", presPreview.Post)
 	api.GET("/presets/:id", pres.Get)
 	api.PATCH("/presets/:id", pres.Update)
 	api.DELETE("/presets/:id", pres.Delete)

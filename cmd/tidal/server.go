@@ -12,6 +12,8 @@ import (
 
 	"github.com/rustyguts/tidal/internal/config"
 	"github.com/rustyguts/tidal/internal/db"
+	"github.com/rustyguts/tidal/internal/domain"
+	"github.com/rustyguts/tidal/internal/ffmpeg/catalog"
 	"github.com/rustyguts/tidal/internal/jobs"
 	"github.com/rustyguts/tidal/internal/logging"
 	"github.com/rustyguts/tidal/internal/presets"
@@ -48,7 +50,10 @@ func serverCmd() *cobra.Command {
 			}
 			defer pool.Close()
 
-			presetSvc := presets.New(pool)
+			cat := catalog.Default()
+			presetSvc := presets.New(pool, cat, domain.ValidateOpts{
+				PermissiveRawExtras: cfg.PresetRawExtrasPermissive,
+			})
 			planted, err := presetSvc.Seed(ctx)
 			if err != nil {
 				return err
@@ -80,6 +85,7 @@ func serverCmd() *cobra.Command {
 				Config:    cfg,
 				Pool:      pool,
 				Presets:   presetSvc,
+				Catalog:   cat,
 				Jobs:      jobSvc,
 				Workflows: wfSvc,
 				Hub:       hub,

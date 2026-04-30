@@ -1,6 +1,8 @@
 import type {
 	Preset,
-	PresetSpec,
+	PresetSpecV2,
+	PreviewResponse,
+	SchemaResponse,
 	Job,
 	JobLog,
 	SystemInfo,
@@ -39,9 +41,9 @@ export const api = {
 	presets: {
 		list: () => request<Preset[]>('/api/presets'),
 		get: (id: string) => request<Preset>(`/api/presets/${id}`),
-		create: (body: { name: string; description?: string; spec: PresetSpec }) =>
+		create: (body: { name: string; description?: string; spec: PresetSpecV2 }) =>
 			request<Preset>('/api/presets', { method: 'POST', body: JSON.stringify(body) }),
-		update: (id: string, body: { name?: string; description?: string; spec?: PresetSpec }) =>
+		update: (id: string, body: { name?: string; description?: string; spec?: PresetSpecV2 }) =>
 			request<Preset>(`/api/presets/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 		remove: (id: string) =>
 			request<void>(`/api/presets/${id}`, { method: 'DELETE' }),
@@ -51,7 +53,13 @@ export const api = {
 				body: JSON.stringify({ name })
 			}),
 		restoreDefaults: () =>
-			request<{ restored: string[] }>('/api/presets/restore-defaults', { method: 'POST' })
+			request<{ restored: string[] }>('/api/presets/restore-defaults', { method: 'POST' }),
+		schema: () => request<SchemaResponse>('/api/presets/schema'),
+		preview: (spec: PresetSpecV2) =>
+			request<PreviewResponse>('/api/presets/preview', {
+				method: 'POST',
+				body: JSON.stringify({ spec })
+			})
 	},
 	jobs: {
 		list: (params: { status?: string; limit?: number } = {}) => {
@@ -70,8 +78,10 @@ export const api = {
 			sourceMovePath?: string
 		}) =>
 			request<Job>('/api/jobs', { method: 'POST', body: JSON.stringify(body) }),
-		cancel: (id: string) =>
-			request<void>(`/api/jobs/${id}`, { method: 'DELETE' }),
+		cancel: (id: string, opts: { force?: boolean } = {}) => {
+			const q = opts.force ? '?force=true' : ''
+			return request<void>(`/api/jobs/${id}${q}`, { method: 'DELETE' })
+		},
 		logs: (id: string, fromSeq = 0, limit = 200) => {
 			const q = new URLSearchParams()
 			if (fromSeq) q.set('from', String(fromSeq))

@@ -6,11 +6,11 @@ import (
 )
 
 type Preset struct {
-	ID          PresetID   `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Builtin     bool       `json:"builtin"`
-	Spec        PresetSpec `json:"spec"`
+	ID          PresetID     `json:"id"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Builtin     bool         `json:"builtin"`
+	Spec        PresetSpecV2 `json:"spec"`
 	Timestamps
 }
 
@@ -53,9 +53,11 @@ func (s PresetSpec) Validate() error {
 	return nil
 }
 
-func (p Preset) Validate() error {
+// ValidateName verifies the basic preset metadata (name only). Spec
+// validation requires the catalog and lives on PresetSpecV2 / ValidateV2.
+func (p Preset) ValidateName() error {
 	if strings.TrimSpace(p.Name) == "" {
 		return fmt.Errorf("name required")
 	}
-	return p.Spec.Validate()
+	return nil
 }

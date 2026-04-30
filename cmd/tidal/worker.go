@@ -15,6 +15,8 @@ import (
 
 	"github.com/rustyguts/tidal/internal/config"
 	"github.com/rustyguts/tidal/internal/db"
+	"github.com/rustyguts/tidal/internal/domain"
+	"github.com/rustyguts/tidal/internal/ffmpeg/catalog"
 	"github.com/rustyguts/tidal/internal/jobs"
 	"github.com/rustyguts/tidal/internal/k8s"
 	"github.com/rustyguts/tidal/internal/logging"
@@ -53,7 +55,9 @@ func workerCmd() *cobra.Command {
 			defer qc.Close()
 
 			hub := realtime.NewHub()
-			presetSvc := presets.New(pool)
+			presetSvc := presets.New(pool, catalog.Default(), domain.ValidateOpts{
+				PermissiveRawExtras: cfg.PresetRawExtrasPermissive,
+			})
 			jobSvc := jobs.NewService(pool, presetSvc, hub)
 			jobSvc.SetEnqueuer(qc)
 			wfSvc := workflows.NewService(pool, presetSvc)

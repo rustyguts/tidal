@@ -30,6 +30,11 @@ const form = ref({
 const submitting = ref(false)
 const submitErr = ref<string | null>(null)
 
+const cancelTarget = ref<Job | null>(null)
+const cancelForce = ref(false)
+const cancelling = ref(false)
+const cancelErr = ref<string | null>(null)
+
 onMounted(async () => {
 	await Promise.all([jobs.load(), presets.load()])
 	jobs.startFirehose()
@@ -40,19 +45,37 @@ const sortedJobs = computed(() =>
 	[...items.value].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
 )
 
-// Same handler stops a running job or hard-deletes a terminal one — server
-// disambiguates based on stored status.
+// Terminal jobs hard-delete after a confirm; non-terminal jobs open the cancel
+// dialog, which exposes the optional force-cancel toggle.
 async function rowAction(j: Job, ev: MouseEvent) {
 	ev.stopPropagation()
-	const verb = isTerminal(j.status) ? 'Delete' : 'Cancel'
-	if (!confirm(`${verb} this job?\n${j.sourcePath}`)) return
-	try {
-		await jobs.cancel(j.id)
-		if (isTerminal(j.status)) {
+	if (isTerminal(j.status)) {
+		if (!confirm(`Delete this job?\n${j.sourcePath}`)) return
+		try {
+			await jobs.cancel(j.id)
 			items.value = items.value.filter((x) => x.id !== j.id)
+		} catch (e) {
+			alert(e instanceof Error ? e.message : String(e))
 		}
+		return
+	}
+	cancelTarget.value = j
+	cancelForce.value = false
+	cancelErr.value = null
+}
+
+async function confirmCancel() {
+	const j = cancelTarget.value
+	if (!j) return
+	cancelling.value = true
+	cancelErr.value = null
+	try {
+		await jobs.cancel(j.id, { force: cancelForce.value })
+		cancelTarget.value = null
 	} catch (e) {
-		alert(e instanceof Error ? e.message : String(e))
+		cancelErr.value = e instanceof Error ? e.message : String(e)
+	} finally {
+		cancelling.value = false
 	}
 }
 
@@ -149,6 +172,34 @@ async function submit() {
 				</tbody>
 			</table>
 		</div>
+
+		<Modal :open="!!cancelTarget" title="Cancel job" @close="cancelTarget = null">
+			<div v-if="cancelTarget" class="space-y-4">
+				<p class="text-sm text-base-content/70">
+					{{ cancelForce
+						? 'Force cancel marks the job cancelled immediately. The dispatcher will clean up the K8s Job on its next watch tick. Use only for stuck/orphaned jobs.'
+						: 'Signals the dispatcher to stop the running ffmpeg and mark the job cancelled.' }}
+				</p>
+				<div class="rounded-box bg-base-200 px-3 py-2 font-mono text-xs break-all">
+					{{ cancelTarget.sourcePath }}
+				</div>
+				<label class="label cursor-pointer justify-start gap-3">
+					<input v-model="cancelForce" type="checkbox" class="toggle toggle-warning" />
+					<span class="label-text">Force cancel <span class="text-base-content/50">(skip dispatcher coordination)</span></span>
+				</label>
+				<div v-if="cancelErr" class="alert alert-error">
+					<span>{{ cancelErr }}</span>
+				</div>
+				<div class="flex justify-end gap-2">
+					<Button variant="ghost" @click="cancelTarget = null">Keep running</Button>
+					<Button
+						:variant="cancelForce ? 'danger' : 'primary'"
+						:loading="cancelling"
+						@click="confirmCancel"
+					>{{ cancelForce ? 'Force cancel' : 'Cancel job' }}</Button>
+				</div>
+			</div>
+		</Modal>
 
 		<Modal :open="showNew" title="New transcode job" @close="showNew = false">
 			<form class="space-y-4" @submit.prevent="submit">

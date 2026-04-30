@@ -143,56 +143,21 @@ func TestPresetSpec_Validate(t *testing.T) {
 	}
 }
 
-func TestPreset_Validate(t *testing.T) {
+func TestPreset_ValidateName(t *testing.T) {
 	tests := []struct {
 		name    string
 		preset  Preset
 		wantErr bool
 	}{
-		{
-			name: "valid preset",
-			preset: Preset{
-				Name:        "test",
-				Description: "a test preset",
-				Spec: PresetSpec{
-					Container:  "mp4",
-					VideoCodec: "libx264",
-					CRF:        23,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "empty name",
-			preset: Preset{
-				Name: "",
-				Spec: PresetSpec{
-					Container:  "mp4",
-					VideoCodec: "libx264",
-					CRF:        23,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "spec failure propagates",
-			preset: Preset{
-				Name: "bad",
-				Spec: PresetSpec{
-					Container:  "avi",
-					VideoCodec: "libx264",
-					CRF:        23,
-				},
-			},
-			wantErr: true,
-		},
+		{name: "valid", preset: Preset{Name: "test"}, wantErr: false},
+		{name: "empty", preset: Preset{Name: ""}, wantErr: true},
+		{name: "whitespace", preset: Preset{Name: "   "}, wantErr: true},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.preset.Validate()
+			err := tt.preset.ValidateName()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Validate() error = %v, wantErr = %v", err, tt.wantErr)
+				t.Errorf("ValidateName() error = %v, wantErr = %v", err, tt.wantErr)
 			}
 		})
 	}

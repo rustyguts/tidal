@@ -65,8 +65,8 @@ export const useJobsStore = defineStore('jobs', () => {
 		return j
 	}
 
-	async function cancel(id: string) {
-		await api.jobs.cancel(id)
+	async function cancel(id: string, opts: { force?: boolean } = {}) {
+		await api.jobs.cancel(id, opts)
 	}
 
 	onScopeDispose(stopFirehose)

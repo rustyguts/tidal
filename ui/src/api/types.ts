@@ -6,29 +6,239 @@ export interface Resolution {
 	height: number
 }
 
-export interface PresetSpec {
-	container: 'mp4' | 'mkv' | 'webm' | 'mov' | string
-	videoCodec: string
-	videoPreset?: string
-	crf: number
-	pixelFormat?: string
-	audioCodec?: string
-	audioBitrate?: string
-	extraArgs?: string[]
-	outputSuffix?: string
-	resolution?: Resolution | null
+// ===== Preset spec V2 =====
+export type RateMode = 'crf' | 'cbr' | 'vbr' | 'qp' | 'abr' | 'none'
+
+export interface VideoRate {
+	mode: RateMode
+	crf?: number
+	qp?: number
+	bitrate?: string
+	maxRate?: string
+	bufSize?: string
+	minRate?: string
 }
+
+export interface GopSpec {
+	keyintSec?: number
+	keyintMin?: number
+	sceneCut?: boolean
+	bFrames?: number
+	refFrames?: number
+}
+
+export interface ColorSpec {
+	range?: string
+	primaries?: string
+	transfer?: string
+	matrix?: string
+}
+
+export interface KV {
+	key: string
+	value: string
+}
+
+export interface VideoSpec {
+	disabled?: boolean
+	codec: string
+	preset?: string
+	tune?: string
+	profile?: string
+	level?: string
+	pixelFormat?: string
+	rate: VideoRate
+	gop?: GopSpec
+	twoPass?: boolean
+	resolution?: Resolution | null
+	frameRate?: string
+	color?: ColorSpec | null
+	codecExtra?: KV[]
+}
+
+export interface AudioSpec {
+	disabled?: boolean
+	codec?: string
+	bitrate?: string
+	sampleRate?: number
+	channels?: number
+	profile?: string
+	vbrQuality?: number
+}
+
+export interface ContainerSpec {
+	format: string
+	faststart?: boolean
+	movflags?: string[]
+	fragmentDurMs?: number
+}
+
+export interface InputSpec {
+	seekStart?: string
+	duration?: string
+	readRateLimit?: number
+	protocolWhitelist?: string[]
+}
+
+export interface HwaccelSpec {
+	type: 'none' | 'nvdec' | 'vaapi' | 'qsv' | 'videotoolbox'
+	device?: string
+	outputFormat?: string
+}
+
+export interface FilterStep {
+	name: string
+	args?: Record<string, string>
+	enabled?: boolean
+}
+
+export interface FilterChain {
+	video?: FilterStep[]
+	audio?: FilterStep[]
+}
+
+export interface MappingSpec {
+	video?: string
+	audio?: string
+	subtitle?: string
+	streams?: string[]
+}
+
+export interface SubtitleSpec {
+	mode?: 'copy' | 'burn' | 'strip'
+	burnTrack?: number
+}
+
+export interface ThreadingSpec {
+	threads?: number
+	filterThreads?: number
+}
+
+export interface PresetSpecV2 {
+	schemaVersion: 2
+	container: ContainerSpec
+	input?: InputSpec
+	hwaccel?: HwaccelSpec | null
+	video: VideoSpec
+	audio: AudioSpec
+	filters?: FilterChain
+	mapping?: MappingSpec
+	subtitles?: SubtitleSpec
+	outputSuffix?: string
+	rawExtras?: string[]
+	threading?: ThreadingSpec
+}
+
+// Alias kept for callers that still import `PresetSpec` — V2 is now the
+// canonical shape.
+export type PresetSpec = PresetSpecV2
 
 export interface Preset {
 	id: string
 	name: string
 	description: string
 	builtin: boolean
-	spec: PresetSpec
+	spec: PresetSpecV2
 	createdAt: string
 	updatedAt: string
 }
 
+// ===== Catalog (served by GET /api/presets/schema) =====
+export interface CatalogIntRange {
+	min: number
+	max: number
+	default: number
+}
+
+export interface CatalogVideoCodec {
+	name: string
+	family: 'cpu' | 'nvenc' | 'vaapi' | 'qsv' | 'passthrough'
+	displayName: string
+	description?: string
+	presets?: string[]
+	tunes?: string[]
+	profiles?: string[]
+	levels?: string[]
+	pixelFormats?: string[]
+	crfRange?: CatalogIntRange
+	qpRange?: CatalogIntRange
+	rateModes: RateMode[]
+	allowsTwoPass: boolean
+	paramFlag?: string
+}
+
+export interface CatalogAudioCodec {
+	name: string
+	displayName: string
+	description?: string
+	sampleRates?: number[]
+	channels?: number[]
+	bitrateKbps?: CatalogIntRange
+	allowsVBR: boolean
+	vbrQuality?: CatalogIntRange
+	profiles?: string[]
+}
+
+export interface CatalogContainer {
+	format: string
+	faststart?: boolean
+	movflags?: string[]
+	mime: string
+}
+
+export interface CatalogHwaccel {
+	type: string
+	displayName: string
+	description?: string
+	codecNames: string[]
+	outputFormats: string[]
+	defaultDevice?: string
+}
+
+export interface CatalogFilterArg {
+	name: string
+	type: 'string' | 'int' | 'float' | 'bool' | 'enum'
+	required?: boolean
+	default?: string
+	description?: string
+	enum?: string[]
+	min?: number
+	max?: number
+}
+
+export interface CatalogFilter {
+	name: string
+	scope: 'video' | 'audio'
+	displayName: string
+	description?: string
+	args?: CatalogFilterArg[]
+}
+
+export interface Catalog {
+	containers: CatalogContainer[]
+	videoCodecs: CatalogVideoCodec[]
+	audioCodecs: CatalogAudioCodec[]
+	pixelFormats: string[]
+	hwaccels: CatalogHwaccel[]
+	filters: CatalogFilter[]
+	rawExtrasAllow: string[]
+	rawExtrasDeny: string[]
+}
+
+export interface SchemaResponse {
+	schemaVersion: number
+	catalog: Catalog
+	schema: Record<string, unknown>
+}
+
+export interface PreviewResponse {
+	argv: string[]
+	errors?: string[]
+	warnings?: string[]
+	spec: PresetSpecV2
+}
+
+// ===== Jobs / Workflows / System =====
 export type JobStatus =
 	| 'queued'
 	| 'dispatched'
@@ -53,6 +263,7 @@ export interface Job {
 	id: string
 	asynqId?: string
 	presetId: string
+	specSnapshot?: PresetSpecV2
 	sourcePath: string
 	outputPath: string
 	cachePath?: string

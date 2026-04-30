@@ -35,7 +35,12 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ name })
         }),
-        restoreDefaults: () => request('/api/presets/restore-defaults', { method: 'POST' })
+        restoreDefaults: () => request('/api/presets/restore-defaults', { method: 'POST' }),
+        schema: () => request('/api/presets/schema'),
+        preview: (spec) => request('/api/presets/preview', {
+            method: 'POST',
+            body: JSON.stringify({ spec })
+        })
     },
     jobs: {
         list: (params = {}) => {
@@ -49,7 +54,10 @@ export const api = {
         },
         get: (id) => request(`/api/jobs/${id}`),
         create: (body) => request('/api/jobs', { method: 'POST', body: JSON.stringify(body) }),
-        cancel: (id) => request(`/api/jobs/${id}`, { method: 'DELETE' }),
+        cancel: (id, opts = {}) => {
+            const q = opts.force ? '?force=true' : '';
+            return request(`/api/jobs/${id}${q}`, { method: 'DELETE' });
+        },
         logs: (id, fromSeq = 0, limit = 200) => {
             const q = new URLSearchParams();
             if (fromSeq)

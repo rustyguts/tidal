@@ -107,6 +107,12 @@ func (h *Jobs) Cancel(c echo.Context) error {
 		}
 		return c.NoContent(http.StatusNoContent)
 	}
+	if c.QueryParam("force") == "true" {
+		if err := h.svc.ForceCancel(ctx, id); err != nil {
+			return mapJobErr(err)
+		}
+		return c.NoContent(http.StatusNoContent)
+	}
 	if err := h.svc.Cancel(ctx, id); err != nil {
 		return mapJobErr(err)
 	}

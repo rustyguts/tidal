@@ -19,15 +19,15 @@ func NewPresets(svc *presets.Service) *Presets {
 }
 
 type presetCreateRequest struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Spec        domain.PresetSpec `json:"spec"`
+	Name        string              `json:"name"`
+	Description string              `json:"description"`
+	Spec        domain.PresetSpecV2 `json:"spec"`
 }
 
 type presetUpdateRequest struct {
-	Name        *string            `json:"name,omitempty"`
-	Description *string            `json:"description,omitempty"`
-	Spec        *domain.PresetSpec `json:"spec,omitempty"`
+	Name        *string              `json:"name,omitempty"`
+	Description *string              `json:"description,omitempty"`
+	Spec        *domain.PresetSpecV2 `json:"spec,omitempty"`
 }
 
 type duplicateRequest struct {

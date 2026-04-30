@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useJobStream } from '@/composables/useJobStream'
 import { usePresetsStore } from '@/stores/presets'
+import { useJobsStore } from '@/stores/jobs'
 import StatusBadge from '@/components/jobs/StatusBadge.vue'
 import ProgressBar from '@/components/jobs/ProgressBar.vue'
 import Button from '@/components/common/Button.vue'
+import Modal from '@/components/common/Modal.vue'
 import { api } from '@/api/client'
 
 const route = useRoute()
+const router = useRouter()
 const id = String(route.params.id)
 const presets = usePresetsStore()
+const jobsStore = useJobsStore()
 const { job, logs, error, loaded } = useJobStream(id)
 
 if (!presets.items.length) presets.load()
@@ -20,14 +24,76 @@ const presetName = computed(() => {
 	return p?.name ?? job.value?.presetId ?? '—'
 })
 
+const showCancel = ref(false)
+const cancelForce = ref(false)
 const cancelling = ref(false)
-async function cancelJob() {
+const cancelErr = ref<string | null>(null)
+
+function openCancel() {
+	cancelForce.value = false
+	cancelErr.value = null
+	showCancel.value = true
+}
+
+async function confirmCancel() {
 	if (!job.value) return
 	cancelling.value = true
+	cancelErr.value = null
 	try {
-		await api.jobs.cancel(job.value.id)
+		await api.jobs.cancel(job.value.id, { force: cancelForce.value })
+		showCancel.value = false
+	} catch (e) {
+		cancelErr.value = e instanceof Error ? e.message : String(e)
 	} finally {
 		cancelling.value = false
+	}
+}
+
+const showClone = ref(false)
+const cloneForm = ref({
+	presetId: '',
+	sourcePath: '',
+	outputPath: '',
+	cachePath: '',
+	sourceMovePath: ''
+})
+const cloning = ref(false)
+const cloneErr = ref<string | null>(null)
+
+function openClone() {
+	if (!job.value) return
+	cloneForm.value = {
+		presetId: job.value.presetId,
+		sourcePath: job.value.sourcePath,
+		outputPath: job.value.outputPath,
+		cachePath: job.value.cachePath ?? '',
+		sourceMovePath: job.value.sourceMovePath ?? ''
+	}
+	cloneErr.value = null
+	showClone.value = true
+}
+
+async function submitClone() {
+	cloneErr.value = null
+	if (!cloneForm.value.presetId || !cloneForm.value.sourcePath) {
+		cloneErr.value = 'preset and source required'
+		return
+	}
+	cloning.value = true
+	try {
+		const j = await jobsStore.enqueue({
+			presetId: cloneForm.value.presetId,
+			sourcePath: cloneForm.value.sourcePath.trim(),
+			outputPath: cloneForm.value.outputPath.trim() || undefined,
+			cachePath: cloneForm.value.cachePath.trim() || undefined,
+			sourceMovePath: cloneForm.value.sourceMovePath.trim() || undefined
+		})
+		showClone.value = false
+		router.push(`/jobs/${j.id}`)
+	} catch (e) {
+		cloneErr.value = e instanceof Error ? e.message : String(e)
+	} finally {
+		cloning.value = false
 	}
 }
 
@@ -55,11 +121,11 @@ watch(
 			<span class="text-xs text-base-content/60">preset</span>
 			<span class="font-mono text-xs">{{ presetName }}</span>
 			<div class="flex-1" />
+			<Button variant="ghost" @click="openClone">Clone job</Button>
 			<Button
 				v-if="!['succeeded','failed','cancelled'].includes(job.status)"
 				variant="danger"
-				:loading="cancelling"
-				@click="cancelJob"
+				@click="openCancel"
 			>Cancel</Button>
 		</div>
 
@@ -119,5 +185,87 @@ watch(
 				<div v-if="!logs.length" class="text-base-content/40">no logs yet</div>
 			</div>
 		</div>
+
+		<Modal :open="showCancel" title="Cancel job" @close="showCancel = false">
+			<div class="space-y-4">
+				<p class="text-sm text-base-content/70">
+					{{ cancelForce
+						? 'Force cancel marks the job cancelled immediately. The dispatcher will clean up the K8s Job on its next watch tick. Use only for stuck/orphaned jobs.'
+						: 'Signals the dispatcher to stop the running ffmpeg and mark the job cancelled.' }}
+				</p>
+				<div class="rounded-box bg-base-200 px-3 py-2 font-mono text-xs break-all">
+					{{ job.sourcePath }}
+				</div>
+				<label class="label cursor-pointer justify-start gap-3">
+					<input v-model="cancelForce" type="checkbox" class="toggle toggle-warning" />
+					<span class="label-text">Force cancel <span class="text-base-content/50">(skip dispatcher coordination)</span></span>
+				</label>
+				<div v-if="cancelErr" class="alert alert-error">
+					<span>{{ cancelErr }}</span>
+				</div>
+				<div class="flex justify-end gap-2">
+					<Button variant="ghost" @click="showCancel = false">Keep running</Button>
+					<Button
+						:variant="cancelForce ? 'danger' : 'primary'"
+						:loading="cancelling"
+						@click="confirmCancel"
+					>{{ cancelForce ? 'Force cancel' : 'Cancel job' }}</Button>
+				</div>
+			</div>
+		</Modal>
+
+		<Modal :open="showClone" title="Clone job" @close="showClone = false">
+			<form class="space-y-4" @submit.prevent="submitClone">
+				<p class="text-sm text-base-content/60">
+					Pre-filled from this job. Edit any field and submit to enqueue a new transcode.
+				</p>
+				<fieldset class="fieldset">
+					<legend class="fieldset-legend">Preset</legend>
+					<select v-model="cloneForm.presetId" class="select select-bordered w-full">
+						<option v-for="p in presets.items" :key="p.id" :value="p.id">
+							{{ p.name }}<template v-if="p.description"> — {{ p.description }}</template>
+						</option>
+					</select>
+				</fieldset>
+				<fieldset class="fieldset">
+					<legend class="fieldset-legend">Source path</legend>
+					<input
+						v-model="cloneForm.sourcePath"
+						class="input input-bordered w-full font-mono text-sm"
+					/>
+				</fieldset>
+				<fieldset class="fieldset">
+					<legend class="fieldset-legend">Output path <span class="text-base-content/50">(optional)</span></legend>
+					<input
+						v-model="cloneForm.outputPath"
+						placeholder="leave empty for auto-derived"
+						class="input input-bordered w-full font-mono text-sm"
+					/>
+				</fieldset>
+				<fieldset class="fieldset">
+					<legend class="fieldset-legend">Tidal cache path</legend>
+					<input
+						v-model="cloneForm.cachePath"
+						placeholder="/var/cache/tidal"
+						class="input input-bordered w-full font-mono text-sm"
+					/>
+				</fieldset>
+				<fieldset class="fieldset">
+					<legend class="fieldset-legend">Source move path <span class="text-base-content/50">(optional)</span></legend>
+					<input
+						v-model="cloneForm.sourceMovePath"
+						placeholder="/media/archive/"
+						class="input input-bordered w-full font-mono text-sm"
+					/>
+				</fieldset>
+				<div v-if="cloneErr" class="alert alert-error">
+					<span>{{ cloneErr }}</span>
+				</div>
+				<div class="flex justify-end gap-2">
+					<Button variant="ghost" type="button" @click="showClone = false">Cancel</Button>
+					<Button type="submit" :loading="cloning">Enqueue clone</Button>
+				</div>
+			</form>
+		</Modal>
 	</div>
 </template>

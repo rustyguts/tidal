@@ -14,6 +14,7 @@ import (
 	"github.com/hibiken/asynq"
 
 	"github.com/rustyguts/tidal/internal/config"
+	"github.com/rustyguts/tidal/internal/ffmpeg/catalog"
 	"github.com/rustyguts/tidal/internal/jobs"
 	"github.com/rustyguts/tidal/internal/presets"
 	"github.com/rustyguts/tidal/internal/realtime"
@@ -24,6 +25,7 @@ type Deps struct {
 	Config    config.Config
 	Pool      *pgxpool.Pool
 	Presets   *presets.Service
+	Catalog   *catalog.Catalog
 	Jobs      *jobs.Service
 	Workflows *workflows.Service
 	Hub       *realtime.Hub

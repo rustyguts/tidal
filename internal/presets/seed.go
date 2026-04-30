@@ -17,80 +17,92 @@ import (
 func Builtin() []CreateInput {
 	res1080 := &domain.Resolution{Width: 1920, Height: 1080}
 	res4k := &domain.Resolution{Width: 3840, Height: 2160}
+	crf20 := 20
+	crf22 := 22
+	crf30 := 30
+
+	mp4 := domain.ContainerSpec{Format: "mp4", Faststart: true}
+	mkv := domain.ContainerSpec{Format: "mkv"}
 
 	return []CreateInput{
 		{
 			Name:        "h264-1080p",
 			Description: "H.264 1080p, slow preset, AAC 192k — broad compatibility",
 			Builtin:     true,
-			Spec: domain.PresetSpec{
-				Container:    "mp4",
-				VideoCodec:   "libx264",
-				VideoPreset:  "slow",
-				CRF:          20,
-				AudioCodec:   "aac",
-				AudioBitrate: "192k",
+			Spec: domain.PresetSpecV2{
+				SchemaVersion: domain.SchemaVersionV2,
+				Container:     mp4,
+				Video: domain.VideoSpec{
+					Codec: "libx264", Preset: "slow",
+					PixelFormat: "yuv420p",
+					Rate:        domain.VideoRate{Mode: domain.RateModeCRF, CRF: &crf20},
+					Resolution:  res1080,
+				},
+				Audio:        domain.AudioSpec{Codec: "aac", Bitrate: "192k"},
 				OutputSuffix: "_1080p",
-				Resolution:   res1080,
 			},
 		},
 		{
 			Name:        "h264-4k",
 			Description: "H.264 2160p (4K), slow preset, AAC 192k",
 			Builtin:     true,
-			Spec: domain.PresetSpec{
-				Container:    "mp4",
-				VideoCodec:   "libx264",
-				VideoPreset:  "slow",
-				CRF:          20,
-				AudioCodec:   "aac",
-				AudioBitrate: "192k",
+			Spec: domain.PresetSpecV2{
+				SchemaVersion: domain.SchemaVersionV2,
+				Container:     mp4,
+				Video: domain.VideoSpec{
+					Codec: "libx264", Preset: "slow",
+					PixelFormat: "yuv420p",
+					Rate:        domain.VideoRate{Mode: domain.RateModeCRF, CRF: &crf20},
+					Resolution:  res4k,
+				},
+				Audio:        domain.AudioSpec{Codec: "aac", Bitrate: "192k"},
 				OutputSuffix: "_4k",
-				Resolution:   res4k,
 			},
 		},
 		{
 			Name:        "h265-1080p",
 			Description: "HEVC 1080p, medium preset, AAC 160k — smaller files",
 			Builtin:     true,
-			Spec: domain.PresetSpec{
-				Container:    "mkv",
-				VideoCodec:   "libx265",
-				VideoPreset:  "medium",
-				CRF:          22,
-				AudioCodec:   "aac",
-				AudioBitrate: "160k",
+			Spec: domain.PresetSpecV2{
+				SchemaVersion: domain.SchemaVersionV2,
+				Container:     mkv,
+				Video: domain.VideoSpec{
+					Codec: "libx265", Preset: "medium",
+					PixelFormat: "yuv420p",
+					Rate:        domain.VideoRate{Mode: domain.RateModeCRF, CRF: &crf22},
+					Resolution:  res1080,
+				},
+				Audio:        domain.AudioSpec{Codec: "aac", Bitrate: "160k"},
 				OutputSuffix: "_1080p_h265",
-				Resolution:   res1080,
 			},
 		},
 		{
 			Name:        "av1-1080p",
 			Description: "AV1 (svt-av1) 1080p, preset 4, AAC 160k, MP4 container",
 			Builtin:     true,
-			Spec: domain.PresetSpec{
-				Container:    "mp4",
-				VideoCodec:   "libsvtav1",
-				VideoPreset:  "4",
-				CRF:          30,
-				AudioCodec:   "aac",
-				AudioBitrate: "160k",
+			Spec: domain.PresetSpecV2{
+				SchemaVersion: domain.SchemaVersionV2,
+				Container:     mp4,
+				Video: domain.VideoSpec{
+					Codec: "libsvtav1", Preset: "4",
+					PixelFormat: "yuv420p",
+					Rate:        domain.VideoRate{Mode: domain.RateModeCRF, CRF: &crf30},
+					Resolution:  res1080,
+				},
+				Audio:        domain.AudioSpec{Codec: "aac", Bitrate: "160k"},
 				OutputSuffix: "_1080p_av1",
-				Resolution:   res1080,
 			},
 		},
 		{
 			Name:        "audio-only-aac",
 			Description: "Strip video, output AAC audio at 192k",
 			Builtin:     true,
-			Spec: domain.PresetSpec{
-				Container:    "mp4",
-				VideoCodec:   "copy",
-				CRF:          0,
-				AudioCodec:   "aac",
-				AudioBitrate: "192k",
-				ExtraArgs:    []string{"-vn"},
-				OutputSuffix: "_audio",
+			Spec: domain.PresetSpecV2{
+				SchemaVersion: domain.SchemaVersionV2,
+				Container:     mp4,
+				Video:         domain.VideoSpec{Disabled: true},
+				Audio:         domain.AudioSpec{Codec: "aac", Bitrate: "192k"},
+				OutputSuffix:  "_audio",
 			},
 		},
 	}

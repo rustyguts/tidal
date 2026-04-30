@@ -88,6 +88,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Job, error
 	job := domain.Job{
 		ID:             uuid.New(),
 		PresetID:       in.PresetID,
+		SpecSnapshot:   preset.Spec,
 		SourcePath:     in.SourcePath,
 		OutputPath:     out,
 		CachePath:      cache,
@@ -159,6 +160,27 @@ func (s *Service) HardDelete(ctx context.Context, id domain.JobID) error {
 	return s.repo.hardDelete(ctx, id)
 }
 
+// ForceCancel writes the job straight to `cancelled` without waiting for the
+// dispatcher to confirm. Use only for stuck/orphaned jobs the normal Cancel
+// path can't move (asynq task lost, dispatcher pod gone, etc.). The dispatcher
+// will still clean up the K8s Job on its next watch tick because
+// IsCancelRequested treats `cancelled` the same as `cancelling`.
+func (s *Service) ForceCancel(ctx context.Context, id domain.JobID) error {
+	j, err := s.repo.get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if j.Status.Terminal() {
+		return nil
+	}
+	if err := s.repo.updateStatus(ctx, id, domain.JobCancelled, "force-cancelled", true); err != nil {
+		return err
+	}
+	s.publishStatus(id, domain.JobCancelled, "force-cancelled")
+	s.recordTerminalMetric(ctx, id, domain.JobCancelled)
+	return nil
+}
+
 // Cancel marks the job as cancelling and signals the asynq task. The worker
 // observes ctx.Done and finishes via Cancelled.
 func (s *Service) Cancel(ctx context.Context, id domain.JobID) error {
@@ -183,14 +205,13 @@ func (s *Service) Cancel(ctx context.Context, id domain.JobID) error {
 // Run executes a job in-process. Called by the worker's transcode handler in
 // local-dispatcher mode. The worker's ctx is cancelled when CancelProcessing is
 // invoked, so SIGTERM propagates to ffmpeg via exec.CommandContext.
+//
+// The preset spec is loaded from j.SpecSnapshot (captured at submit time), not
+// from the live preset row, so editing a preset does not change the behavior
+// of queued jobs.
 func (s *Service) Run(ctx context.Context, id domain.JobID) error {
 	j, err := s.repo.get(ctx, id)
 	if err != nil {
-		return err
-	}
-	preset, err := s.presets.Get(ctx, j.PresetID)
-	if err != nil {
-		s.Failed(ctx, id, fmt.Errorf("load preset: %w", err))
 		return err
 	}
 
@@ -217,8 +238,8 @@ func (s *Service) Run(ctx context.Context, id domain.JobID) error {
 		},
 	}
 
-	runErr := ffmpeg.Run(ctx, ffmpeg.RunInput{
-		Preset:     preset.Spec,
+	runErr := ffmpeg.RunV2(ctx, ffmpeg.RunInputV2{
+		Spec:       j.SpecSnapshot,
 		SourcePath: j.SourcePath,
 		OutputPath: j.OutputPath,
 		DurationMs: probe.DurationMs,
@@ -344,7 +365,7 @@ func topicJob(id domain.JobID) string { return "job:" + id.String() }
 func derivedOutputPath(source string, p domain.Preset) string {
 	dir := filepath.Dir(source)
 	base := strings.TrimSuffix(filepath.Base(source), filepath.Ext(source))
-	ext := strings.ToLower(p.Spec.Container)
+	ext := strings.ToLower(p.Spec.Container.Format)
 	if ext == "" {
 		ext = "mp4"
 	}

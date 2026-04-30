@@ -19,7 +19,7 @@ var (
 	ErrInvalid  = errors.New("invalid job state")
 )
 
-const jobCols = "id, asynq_id, preset_id, source_path, output_path, cache_path, source_move_path, status, k8s_job_name, workflow_id, progress, error, created_at, started_at, finished_at"
+const jobCols = "id, asynq_id, preset_id, spec_snapshot, source_path, output_path, cache_path, source_move_path, status, k8s_job_name, workflow_id, progress, error, created_at, started_at, finished_at"
 
 type repo struct {
 	pool *pgxpool.Pool
@@ -31,10 +31,14 @@ func newRepo(pool *pgxpool.Pool) *repo {
 
 func (r *repo) insert(ctx context.Context, j domain.Job) error {
 	progress, _ := json.Marshal(j.Progress)
-	_, err := r.pool.Exec(ctx,
-		`INSERT INTO jobs (id, asynq_id, preset_id, source_path, output_path, cache_path, source_move_path, status, workflow_id, progress, error, created_at)
-		 VALUES ($1, NULLIF($2, ''), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-		j.ID, j.AsynqID, j.PresetID, j.SourcePath, j.OutputPath, j.CachePath, j.SourceMovePath, string(j.Status),
+	snapshot, err := json.Marshal(j.SpecSnapshot)
+	if err != nil {
+		return fmt.Errorf("marshal spec snapshot: %w", err)
+	}
+	_, err = r.pool.Exec(ctx,
+		`INSERT INTO jobs (id, asynq_id, preset_id, spec_snapshot, source_path, output_path, cache_path, source_move_path, status, workflow_id, progress, error, created_at)
+		 VALUES ($1, NULLIF($2, ''), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+		j.ID, j.AsynqID, j.PresetID, snapshot, j.SourcePath, j.OutputPath, j.CachePath, j.SourceMovePath, string(j.Status),
 		j.WorkflowID, progress, j.Error, j.CreatedAt,
 	)
 	if err != nil {
@@ -200,11 +204,12 @@ func scanJob(r rowScanner) (domain.Job, error) {
 		asynq       *string
 		k8sName     *string
 		workflow    *uuid.UUID
+		snapshotRaw []byte
 		progressRaw []byte
 		started     *time.Time
 		finished    *time.Time
 	)
-	err := r.Scan(&j.ID, &asynq, &j.PresetID, &j.SourcePath, &j.OutputPath,
+	err := r.Scan(&j.ID, &asynq, &j.PresetID, &snapshotRaw, &j.SourcePath, &j.OutputPath,
 		&j.CachePath, &j.SourceMovePath,
 		&j.Status, &k8sName, &workflow, &progressRaw, &j.Error,
 		&j.CreatedAt, &started, &finished)
@@ -225,6 +230,9 @@ func scanJob(r rowScanner) (domain.Job, error) {
 	}
 	if finished != nil {
 		j.FinishedAt = finished
+	}
+	if len(snapshotRaw) > 0 {
+		_ = json.Unmarshal(snapshotRaw, &j.SpecSnapshot)
 	}
 	if len(progressRaw) > 0 {
 		_ = json.Unmarshal(progressRaw, &j.Progress)

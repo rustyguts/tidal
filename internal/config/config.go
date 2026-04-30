@@ -58,6 +58,13 @@ type Config struct {
 
 	// Media browsing (server-side allow-list)
 	MediaRoots StringSlice `envconfig:"MEDIA_ROOTS" default:"/media"`
+
+	// PresetRawExtrasPermissive switches preset spec validation from
+	// allowlist-mode to denylist-only for `rawExtras`. Off by default.
+	// Power users on self-hosted instances can opt in to allow arbitrary
+	// passthrough flags. The denylist (e.g. -i, -y, shell metacharacters)
+	// is always enforced.
+	PresetRawExtrasPermissive bool `envconfig:"PRESET_RAW_EXTRAS_PERMISSIVE" default:"false"`
 }
 
 // StringSlice supports comma-separated values via env.
