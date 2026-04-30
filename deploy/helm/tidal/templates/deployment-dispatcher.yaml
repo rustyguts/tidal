@@ -37,3 +37,5 @@ spec:
             {{- include "tidal.commonEnv" . | nindent 12 }}
             {{- include "tidal.dispatcherEnv" . | nindent 12 }}
           resources: {{- toYaml .Values.dispatcher.resources | nindent 12 }}
+          volumeMounts: {{- include "tidal.mediaVolumeMounts" . | nindent 12 }}
+      volumes: {{- include "tidal.mediaVolumes" . | nindent 8 }}
