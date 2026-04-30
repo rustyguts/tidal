@@ -12,7 +12,7 @@ type Job struct {
 	SourceMovePath string         `json:"sourceMovePath,omitempty"`
 	Status         JobStatus      `json:"status"`
 	K8sJobName     string         `json:"k8sJobName,omitempty"`
-	AutomationID   *AutomationID  `json:"automationId,omitempty"`
+	WorkflowID     *WorkflowID    `json:"workflowId,omitempty"`
 	Progress       FFmpegProgress `json:"progress"`
 	Error          string         `json:"error,omitempty"`
 	CreatedAt      time.Time      `json:"createdAt"`

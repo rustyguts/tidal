@@ -59,6 +59,16 @@ export const api = {
             const qs = q.toString();
             return request(`/api/jobs/${id}/logs${qs ? `?${qs}` : ''}`);
         }
+    },
+    workflows: {
+        list: () => request('/api/workflows'),
+        get: (id) => request(`/api/workflows/${id}`),
+        create: (body) => request('/api/workflows', { method: 'POST', body: JSON.stringify(body) }),
+        update: (id, body) => request(`/api/workflows/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+        remove: (id) => request(`/api/workflows/${id}`, { method: 'DELETE' }),
+        enable: (id) => request(`/api/workflows/${id}/enable`, { method: 'POST' }),
+        disable: (id) => request(`/api/workflows/${id}/disable`, { method: 'POST' }),
+        runs: (id, limit = 50) => request(`/api/workflows/${id}/runs?limit=${limit}`)
     }
 };
 export { HTTPError };

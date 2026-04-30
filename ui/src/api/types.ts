@@ -59,12 +59,51 @@ export interface Job {
 	sourceMovePath?: string
 	status: JobStatus
 	k8sJobName?: string
-	automationId?: string | null
+	workflowId?: string | null
 	progress: FFmpegProgress
 	error?: string
 	createdAt: string
 	startedAt?: string | null
 	finishedAt?: string | null
+}
+
+export interface WorkflowTrigger {
+	type: 'file_created'
+	watchDir?: string
+	glob?: string
+}
+
+export interface WorkflowAction {
+	type: 'enqueue_transcode'
+	presetId?: string
+	outputPath?: string
+	sourceMovePath?: string
+	cachePath?: string
+}
+
+export interface Workflow {
+	id: string
+	name: string
+	enabled: boolean
+	trigger: WorkflowTrigger
+	actions: WorkflowAction[]
+	pollIntervalMs: number
+	stableThresholdMs: number
+	runsCount: number
+	successCount: number
+	lastRunAt?: string | null
+	createdAt: string
+	updatedAt: string
+}
+
+export interface WorkflowRun {
+	id: number
+	workflowId: string
+	sourcePath: string
+	jobId?: string | null
+	outcome: string
+	message?: string
+	occurredAt: string
 }
 
 export interface JobLog {

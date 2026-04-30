@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 const links = [
 	{ to: '/jobs', label: 'Jobs' },
 	{ to: '/presets', label: 'Presets' },
-	{ to: '/automations', label: 'Automations' },
+	{ to: '/workflows', label: 'Workflows' },
 	{ to: '/asynq', label: 'Queue' },
 	{ to: '/settings', label: 'Settings' }
 ]

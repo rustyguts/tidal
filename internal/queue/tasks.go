@@ -31,9 +31,9 @@ type TranscodePayload struct {
 	JobID domain.JobID `json:"jobId"`
 }
 
-// ScanPayload triggers a single automation scan tick.
+// ScanPayload triggers a single workflow scan tick.
 type ScanPayload struct {
-	AutomationID domain.AutomationID `json:"automationId"`
+	WorkflowID domain.WorkflowID `json:"workflowId"`
 }
 
 // CleanupPayload prunes older job history.

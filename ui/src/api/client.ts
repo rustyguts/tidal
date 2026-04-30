@@ -1,4 +1,14 @@
-import type { Preset, PresetSpec, Job, JobLog, SystemInfo } from './types'
+import type {
+	Preset,
+	PresetSpec,
+	Job,
+	JobLog,
+	SystemInfo,
+	Workflow,
+	WorkflowRun,
+	WorkflowTrigger,
+	WorkflowAction
+} from './types'
 
 class HTTPError extends Error {
 	constructor(public status: number, message: string) {
@@ -69,6 +79,36 @@ export const api = {
 			const qs = q.toString()
 			return request<JobLog[]>(`/api/jobs/${id}/logs${qs ? `?${qs}` : ''}`)
 		}
+	},
+	workflows: {
+		list: () => request<Workflow[]>('/api/workflows'),
+		get: (id: string) => request<Workflow>(`/api/workflows/${id}`),
+		create: (body: {
+			name: string
+			enabled: boolean
+			trigger: WorkflowTrigger
+			actions: WorkflowAction[]
+			pollIntervalMs?: number
+			stableThresholdMs?: number
+		}) => request<Workflow>('/api/workflows', { method: 'POST', body: JSON.stringify(body) }),
+		update: (
+			id: string,
+			body: Partial<{
+				name: string
+				enabled: boolean
+				trigger: WorkflowTrigger
+				actions: WorkflowAction[]
+				pollIntervalMs: number
+				stableThresholdMs: number
+			}>
+		) => request<Workflow>(`/api/workflows/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+		remove: (id: string) => request<void>(`/api/workflows/${id}`, { method: 'DELETE' }),
+		enable: (id: string) =>
+			request<void>(`/api/workflows/${id}/enable`, { method: 'POST' }),
+		disable: (id: string) =>
+			request<void>(`/api/workflows/${id}/disable`, { method: 'POST' }),
+		runs: (id: string, limit = 50) =>
+			request<WorkflowRun[]>(`/api/workflows/${id}/runs?limit=${limit}`)
 	}
 }
 

@@ -26,18 +26,18 @@ type Enqueuer interface {
 	CancelProcessing(asynqID string) error
 }
 
-// SourceArchiver moves a source file into an automation's archive_dir after
-// a successful transcode. Optional; jobs.Service skips archive when nil.
-type SourceArchiver interface {
-	ArchiveSource(ctx context.Context, automationID domain.AutomationID, sourcePath string) error
+// WorkflowSuccessCounter is incremented when a job that was triggered by a
+// workflow reaches the succeeded state. Optional; jobs.Service no-ops if nil.
+type WorkflowSuccessCounter interface {
+	IncrementSuccess(ctx context.Context, workflowID domain.WorkflowID) error
 }
 
 type Service struct {
-	repo     *repo
-	presets  *presets.Service
-	queue    Enqueuer
-	archiver SourceArchiver
-	hub      *realtime.Hub
+	repo            *repo
+	presets         *presets.Service
+	queue           Enqueuer
+	workflowCounter WorkflowSuccessCounter
+	hub             *realtime.Hub
 }
 
 func NewService(pool *pgxpool.Pool, presetSvc *presets.Service, hub *realtime.Hub) *Service {
@@ -51,8 +51,8 @@ func NewService(pool *pgxpool.Pool, presetSvc *presets.Service, hub *realtime.Hu
 // SetEnqueuer wires the queue client. Must be called before Create is invoked.
 func (s *Service) SetEnqueuer(e Enqueuer) { s.queue = e }
 
-// SetArchiver wires the post-transcode source archiver. Optional.
-func (s *Service) SetArchiver(a SourceArchiver) { s.archiver = a }
+// SetWorkflowCounter wires the per-workflow success counter. Optional.
+func (s *Service) SetWorkflowCounter(c WorkflowSuccessCounter) { s.workflowCounter = c }
 
 // DefaultCachePath is the in-container directory used for ffmpeg working
 // files when the caller doesn't override it. Mounted via a volume in the
@@ -65,7 +65,7 @@ type CreateInput struct {
 	OutputPath     string // optional; derived from preset suffix if empty
 	CachePath      string // optional; defaults to DefaultCachePath
 	SourceMovePath string // optional; if set, source moves here on success
-	AutomationID   *domain.AutomationID
+	WorkflowID     *domain.WorkflowID
 }
 
 // Create validates the inputs, persists the job row, and enqueues an asynq
@@ -93,7 +93,7 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Job, error
 		CachePath:      cache,
 		SourceMovePath: strings.TrimSpace(in.SourceMovePath),
 		Status:         domain.JobQueued,
-		AutomationID:   in.AutomationID,
+		WorkflowID:     in.WorkflowID,
 		CreatedAt:      time.Now().UTC(),
 	}
 	if err := s.repo.insert(ctx, job); err != nil {
@@ -269,7 +269,7 @@ func (s *Service) Succeeded(ctx context.Context, id domain.JobID) {
 	s.publishStatus(id, domain.JobSucceeded, "")
 	s.recordTerminalMetric(ctx, id, domain.JobSucceeded)
 	s.maybeMoveSource(ctx, id)
-	s.maybeArchive(ctx, id)
+	s.maybeBumpWorkflowSuccess(ctx, id)
 }
 
 func (s *Service) maybeMoveSource(ctx context.Context, id domain.JobID) {
@@ -297,16 +297,16 @@ func (s *Service) PruneOldTerminal(ctx context.Context, older time.Duration) (in
 	return s.repo.PruneOldTerminal(ctx, older)
 }
 
-func (s *Service) maybeArchive(ctx context.Context, id domain.JobID) {
-	if s.archiver == nil {
+func (s *Service) maybeBumpWorkflowSuccess(ctx context.Context, id domain.JobID) {
+	if s.workflowCounter == nil {
 		return
 	}
 	j, err := s.repo.get(ctx, id)
-	if err != nil || j.AutomationID == nil {
+	if err != nil || j.WorkflowID == nil {
 		return
 	}
-	if err := s.archiver.ArchiveSource(ctx, *j.AutomationID, j.SourcePath); err != nil {
-		log.Warn().Err(err).Str("job", id.String()).Msg("archive source")
+	if err := s.workflowCounter.IncrementSuccess(ctx, *j.WorkflowID); err != nil {
+		log.Warn().Err(err).Str("job", id.String()).Msg("workflow success counter")
 	}
 }
 

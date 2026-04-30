@@ -19,7 +19,7 @@ var (
 	ErrInvalid  = errors.New("invalid job state")
 )
 
-const jobCols = "id, asynq_id, preset_id, source_path, output_path, cache_path, source_move_path, status, k8s_job_name, automation_id, progress, error, created_at, started_at, finished_at"
+const jobCols = "id, asynq_id, preset_id, source_path, output_path, cache_path, source_move_path, status, k8s_job_name, workflow_id, progress, error, created_at, started_at, finished_at"
 
 type repo struct {
 	pool *pgxpool.Pool
@@ -32,10 +32,10 @@ func newRepo(pool *pgxpool.Pool) *repo {
 func (r *repo) insert(ctx context.Context, j domain.Job) error {
 	progress, _ := json.Marshal(j.Progress)
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO jobs (id, asynq_id, preset_id, source_path, output_path, cache_path, source_move_path, status, automation_id, progress, error, created_at)
+		`INSERT INTO jobs (id, asynq_id, preset_id, source_path, output_path, cache_path, source_move_path, status, workflow_id, progress, error, created_at)
 		 VALUES ($1, NULLIF($2, ''), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 		j.ID, j.AsynqID, j.PresetID, j.SourcePath, j.OutputPath, j.CachePath, j.SourceMovePath, string(j.Status),
-		j.AutomationID, progress, j.Error, j.CreatedAt,
+		j.WorkflowID, progress, j.Error, j.CreatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("insert job: %w", err)
@@ -199,14 +199,14 @@ func scanJob(r rowScanner) (domain.Job, error) {
 		j           domain.Job
 		asynq       *string
 		k8sName     *string
-		automation  *uuid.UUID
+		workflow    *uuid.UUID
 		progressRaw []byte
 		started     *time.Time
 		finished    *time.Time
 	)
 	err := r.Scan(&j.ID, &asynq, &j.PresetID, &j.SourcePath, &j.OutputPath,
 		&j.CachePath, &j.SourceMovePath,
-		&j.Status, &k8sName, &automation, &progressRaw, &j.Error,
+		&j.Status, &k8sName, &workflow, &progressRaw, &j.Error,
 		&j.CreatedAt, &started, &finished)
 	if err != nil {
 		return domain.Job{}, err
@@ -217,8 +217,8 @@ func scanJob(r rowScanner) (domain.Job, error) {
 	if k8sName != nil {
 		j.K8sJobName = *k8sName
 	}
-	if automation != nil {
-		j.AutomationID = automation
+	if workflow != nil {
+		j.WorkflowID = workflow
 	}
 	if started != nil {
 		j.StartedAt = started

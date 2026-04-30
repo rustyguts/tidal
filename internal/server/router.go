@@ -34,18 +34,16 @@ func mountRoutes(e *echo.Echo, deps Deps) {
 	api.DELETE("/jobs/:id", jobsHandler.Cancel)
 	api.GET("/jobs/:id/logs", jobsHandler.Logs)
 
-	if deps.Automations != nil {
-		// notify is nil — scheduler runs in the worker pod and re-syncs from
-		// DB on its own ticker, so we don't need cross-process notification.
-		automationsHandler := handlers.NewAutomations(deps.Automations, nil)
-		api.GET("/automations", automationsHandler.List)
-		api.POST("/automations", automationsHandler.Create)
-		api.GET("/automations/:id", automationsHandler.Get)
-		api.PATCH("/automations/:id", automationsHandler.Update)
-		api.DELETE("/automations/:id", automationsHandler.Delete)
-		api.POST("/automations/:id/enable", automationsHandler.Enable)
-		api.POST("/automations/:id/disable", automationsHandler.Disable)
-		api.GET("/automations/:id/runs", automationsHandler.ListRuns)
+	if deps.Workflows != nil {
+		wf := handlers.NewWorkflows(deps.Workflows)
+		api.GET("/workflows", wf.List)
+		api.POST("/workflows", wf.Create)
+		api.GET("/workflows/:id", wf.Get)
+		api.PATCH("/workflows/:id", wf.Update)
+		api.DELETE("/workflows/:id", wf.Delete)
+		api.POST("/workflows/:id/enable", wf.Enable)
+		api.POST("/workflows/:id/disable", wf.Disable)
+		api.GET("/workflows/:id/runs", wf.ListRuns)
 	}
 
 	api.GET("/jobs/events", func(c echo.Context) error {

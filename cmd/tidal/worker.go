@@ -13,7 +13,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/rustyguts/tidal/internal/automations"
 	"github.com/rustyguts/tidal/internal/config"
 	"github.com/rustyguts/tidal/internal/db"
 	"github.com/rustyguts/tidal/internal/jobs"
@@ -23,6 +22,7 @@ import (
 	"github.com/rustyguts/tidal/internal/queue"
 	"github.com/rustyguts/tidal/internal/realtime"
 	"github.com/rustyguts/tidal/internal/worker"
+	"github.com/rustyguts/tidal/internal/workflows"
 )
 
 func workerCmd() *cobra.Command {
@@ -56,28 +56,27 @@ func workerCmd() *cobra.Command {
 			presetSvc := presets.New(pool)
 			jobSvc := jobs.NewService(pool, presetSvc, hub)
 			jobSvc.SetEnqueuer(qc)
-			autoSvc := automations.NewService(pool, presetSvc)
-			jobSvc.SetArchiver(autoSvc)
+			wfSvc := workflows.NewService(pool, presetSvc)
+			jobSvc.SetWorkflowCounter(wfSvc)
 
 			runner, err := buildRunner(cfg, jobSvc)
 			if err != nil {
 				return err
 			}
 
-			// Automation scheduler runs in this pod (not the server) so that
+			// Workflow scheduler runs in this pod (not the server) so
 			// horizontally-scaled server replicas don't all enqueue duplicate
-			// scans. Worker pods are normally singletons. If you scale workers
-			// > 1, swap this for a leader-election driven scheduler.
-			scanner := automations.NewScanner(autoSvc, jobSvc)
-			scheduler := automations.NewScheduler(autoSvc, scanner)
+			// scans. Worker pods are singletons. Scale > 1 → leader election.
+			executor := workflows.NewExecutor(wfSvc, jobSvc)
+			watcher := workflows.NewWatcher(executor)
+			scheduler := workflows.NewScheduler(wfSvc, watcher)
 			if err := scheduler.Start(ctx); err != nil {
 				return err
 			}
 			defer scheduler.Stop()
 
-			// Re-sync the scheduler from DB every 30s so newly-created or
-			// disabled automations get picked up without a server→worker
-			// notification channel.
+			// Re-sync from DB every 30s so newly-created / disabled workflows
+			// take effect without a server→worker notification channel.
 			go func() {
 				t := time.NewTicker(30 * time.Second)
 				defer t.Stop()

@@ -13,21 +13,21 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/rustyguts/tidal/internal/automations"
 	"github.com/rustyguts/tidal/internal/config"
 	"github.com/rustyguts/tidal/internal/jobs"
 	"github.com/rustyguts/tidal/internal/presets"
 	"github.com/rustyguts/tidal/internal/realtime"
+	"github.com/rustyguts/tidal/internal/workflows"
 )
 
 type Deps struct {
-	Config      config.Config
-	Pool        *pgxpool.Pool
-	Presets     *presets.Service
-	Jobs        *jobs.Service
-	Automations *automations.Service
-	Hub         *realtime.Hub
-	RedisOpt    *asynq.RedisClientOpt // when set, asynqmon is mounted at /asynq
+	Config    config.Config
+	Pool      *pgxpool.Pool
+	Presets   *presets.Service
+	Jobs      *jobs.Service
+	Workflows *workflows.Service
+	Hub       *realtime.Hub
+	RedisOpt  *asynq.RedisClientOpt // when set, asynqmon is mounted at /asynq
 }
 
 type Server struct {

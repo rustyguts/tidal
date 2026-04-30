@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/rustyguts/tidal/internal/automations"
 	"github.com/rustyguts/tidal/internal/config"
 	"github.com/rustyguts/tidal/internal/db"
 	"github.com/rustyguts/tidal/internal/jobs"
@@ -19,6 +18,7 @@ import (
 	"github.com/rustyguts/tidal/internal/queue"
 	"github.com/rustyguts/tidal/internal/realtime"
 	"github.com/rustyguts/tidal/internal/server"
+	"github.com/rustyguts/tidal/internal/workflows"
 )
 
 func serverCmd() *cobra.Command {
@@ -69,21 +69,21 @@ func serverCmd() *cobra.Command {
 			jobSvc := jobs.NewService(pool, presetSvc, hub)
 			jobSvc.SetEnqueuer(qc)
 
-			autoSvc := automations.NewService(pool, presetSvc)
-			jobSvc.SetArchiver(autoSvc)
+			wfSvc := workflows.NewService(pool, presetSvc)
+			jobSvc.SetWorkflowCounter(wfSvc)
 
-			// Note: the automation scheduler runs in the worker pod (see
-			// `tidal worker`), not here. Server stays stateless so it can scale
+			// Note: workflow scheduler runs in the worker pod (see `tidal
+			// worker`), not here. Server stays stateless so it can scale
 			// horizontally with zero-downtime rolling updates.
 
 			srv := server.New(server.Deps{
-				Config:      cfg,
-				Pool:        pool,
-				Presets:     presetSvc,
-				Jobs:        jobSvc,
-				Automations: autoSvc,
-				Hub:         hub,
-				RedisOpt:    &redisCopy,
+				Config:    cfg,
+				Pool:      pool,
+				Presets:   presetSvc,
+				Jobs:      jobSvc,
+				Workflows: wfSvc,
+				Hub:       hub,
+				RedisOpt:  &redisCopy,
 			})
 
 			errCh := make(chan error, 1)

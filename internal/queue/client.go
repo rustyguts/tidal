@@ -54,9 +54,9 @@ func (c *Client) EnqueueTranscode(ctx context.Context, jobID domain.JobID) (stri
 	return info.ID, nil
 }
 
-// EnqueueScan submits a scan tick for an automation.
-func (c *Client) EnqueueScan(ctx context.Context, automationID domain.AutomationID) (string, error) {
-	t, err := newTask(TaskTypeScan, ScanPayload{AutomationID: automationID},
+// EnqueueScan submits a scan tick for a workflow.
+func (c *Client) EnqueueScan(ctx context.Context, workflowID domain.WorkflowID) (string, error) {
+	t, err := newTask(TaskTypeScan, ScanPayload{WorkflowID: workflowID},
 		asynq.Queue(QueueScan),
 		asynq.MaxRetry(3),
 		asynq.Timeout(5*time.Minute),

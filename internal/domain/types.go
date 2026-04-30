@@ -9,7 +9,6 @@ import (
 type (
 	PresetID     = uuid.UUID
 	JobID        = uuid.UUID
-	AutomationID = uuid.UUID
 )
 
 type JobStatus string
