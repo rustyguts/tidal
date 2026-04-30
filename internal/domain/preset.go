@@ -47,6 +47,26 @@ type ContainerSpec struct {
 	FragmentDurMs int      `json:"fragmentDurMs,omitempty"`
 }
 
+// UnmarshalJSON supports both the new object form {"format":"mp4"} and the
+// legacy string form "mp4" so that presets written before the V2 refactor
+// can still be read without a forced migration.
+func (c *ContainerSpec) UnmarshalJSON(data []byte) error {
+	// Try object form first.
+	type plain ContainerSpec
+	var obj plain
+	if err := json.Unmarshal(data, &obj); err == nil {
+		*c = ContainerSpec(obj)
+		return nil
+	}
+	// Fallback: legacy string form.
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		c.Format = s
+		return nil
+	}
+	return fmt.Errorf("container: expected object or string, got %s", string(data))
+}
+
 type InputSpec struct {
 	SeekStart         string   `json:"seekStart,omitempty"` // -ss
 	Duration          string   `json:"duration,omitempty"`  // -t
