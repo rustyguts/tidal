@@ -3,6 +3,10 @@ kind: Deployment
 metadata:
   name: {{ include "tidal.fullname" . }}-server
   labels: {{- include "tidal.labels" . | nindent 4 }}
+  annotations:
+    # Run after the migrate Job (wave 5) so the server pod doesn't crash on
+    # 'relation seeded_presets does not exist' before migrations land.
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   replicas: {{ .Values.server.replicaCount }}
   selector:

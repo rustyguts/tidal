@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: {{ include "tidal.fullname" . }}-dispatcher
   labels: {{- include "tidal.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   {{- if eq .Values.dispatcher.mode "batch" }}
   replicas: {{ .Values.dispatcher.replicaCount }}
