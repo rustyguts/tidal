@@ -9,6 +9,12 @@ metadata:
     argocd.argoproj.io/sync-wave: "10"
 spec:
   replicas: {{ .Values.server.replicaCount }}
+  # Stateless server — surge one new pod, never drop a healthy one.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels: {{- include "tidal.serverSelectorLabels" . | nindent 6 }}
   template:
@@ -18,6 +24,7 @@ spec:
       annotations: {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      terminationGracePeriodSeconds: 30
       serviceAccountName: {{ include "tidal.serverServiceAccount" . }}
       {{- with .Values.image.pullSecrets }}
       imagePullSecrets: {{- toYaml . | nindent 8 }}

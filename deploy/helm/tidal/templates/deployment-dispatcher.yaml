@@ -11,12 +11,18 @@ spec:
   {{- else }}
   replicas: 0
   {{- end }}
+  # Recreate keeps the in-flight K8s Jobs intact — the new dispatcher
+  # re-attaches via deterministic Job names + asynq retries.
+  strategy:
+    type: Recreate
   selector:
     matchLabels: {{- include "tidal.dispatcherSelectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels: {{- include "tidal.dispatcherSelectorLabels" . | nindent 8 }}
     spec:
+      # Long grace so asynq can finish handing off in-progress watch loops.
+      terminationGracePeriodSeconds: 120
       serviceAccountName: {{ include "tidal.dispatcherServiceAccount" . }}
       {{- with .Values.image.pullSecrets }}
       imagePullSecrets: {{- toYaml . | nindent 8 }}

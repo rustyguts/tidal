@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os/signal"
 	"syscall"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -62,6 +64,33 @@ func workerCmd() *cobra.Command {
 				return err
 			}
 
+			// Automation scheduler runs in this pod (not the server) so that
+			// horizontally-scaled server replicas don't all enqueue duplicate
+			// scans. Worker pods are normally singletons. If you scale workers
+			// > 1, swap this for a leader-election driven scheduler.
+			scanner := automations.NewScanner(autoSvc, jobSvc)
+			scheduler := automations.NewScheduler(autoSvc, scanner)
+			if err := scheduler.Start(ctx); err != nil {
+				return err
+			}
+			defer scheduler.Stop()
+
+			// Re-sync the scheduler from DB every 30s so newly-created or
+			// disabled automations get picked up without a server→worker
+			// notification channel.
+			go func() {
+				t := time.NewTicker(30 * time.Second)
+				defer t.Stop()
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-t.C:
+						_ = scheduler.Sync(context.Background())
+					}
+				}
+			}()
+
 			w := worker.New(worker.Config{
 				RedisOpt:    redisOpt,
 				Concurrency: cfg.WorkerConcurrency,
@@ -99,7 +128,9 @@ func buildRunner(cfg config.Config, jobSvc *jobs.Service) (worker.Runner, error)
 			MediaMountPath:    cfg.JobMediaMountPath,
 			Resources:         buildJobResources(cfg),
 		}
-		return k8s.NewDispatcher(cli, proto), nil
+		dispatcher := k8s.NewDispatcher(cli, proto)
+		dispatcher.SetCancelChecker(jobSvc)
+		return dispatcher, nil
 	default:
 		return nil, fmt.Errorf("unknown dispatcher mode %q", cfg.Dispatcher)
 	}

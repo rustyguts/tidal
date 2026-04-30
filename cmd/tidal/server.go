@@ -72,22 +72,18 @@ func serverCmd() *cobra.Command {
 			autoSvc := automations.NewService(pool, presetSvc)
 			jobSvc.SetArchiver(autoSvc)
 
-			scanner := automations.NewScanner(autoSvc, jobSvc)
-			scheduler := automations.NewScheduler(autoSvc, scanner)
-			if err := scheduler.Start(ctx); err != nil {
-				return err
-			}
-			defer scheduler.Stop()
+			// Note: the automation scheduler runs in the worker pod (see
+			// `tidal worker`), not here. Server stays stateless so it can scale
+			// horizontally with zero-downtime rolling updates.
 
 			srv := server.New(server.Deps{
-				Config:       cfg,
-				Pool:         pool,
-				Presets:      presetSvc,
-				Jobs:         jobSvc,
-				Automations:  autoSvc,
-				OnAutomation: func() { _ = scheduler.Sync(context.Background()) },
-				Hub:          hub,
-				RedisOpt:     &redisCopy,
+				Config:      cfg,
+				Pool:        pool,
+				Presets:     presetSvc,
+				Jobs:        jobSvc,
+				Automations: autoSvc,
+				Hub:         hub,
+				RedisOpt:    &redisCopy,
 			})
 
 			errCh := make(chan error, 1)

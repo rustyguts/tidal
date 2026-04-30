@@ -37,7 +37,10 @@ func (c *Client) Close() error {
 func (c *Client) EnqueueTranscode(ctx context.Context, jobID domain.JobID) (string, error) {
 	t, err := newTask(TaskTypeTranscode, TranscodePayload{JobID: jobID},
 		asynq.Queue(QueueTranscode),
-		asynq.MaxRetry(0),
+		// Retry on dispatcher restart / transient k8s API errors. The K8s Job
+		// uses a deterministic name keyed on JobID, so retries re-attach
+		// rather than starting fresh encodes.
+		asynq.MaxRetry(5),
 		asynq.Timeout(24*time.Hour),
 		asynq.Retention(7*24*time.Hour),
 	)

@@ -35,7 +35,9 @@ func mountRoutes(e *echo.Echo, deps Deps) {
 	api.GET("/jobs/:id/logs", jobsHandler.Logs)
 
 	if deps.Automations != nil {
-		automationsHandler := handlers.NewAutomations(deps.Automations, deps.OnAutomation)
+		// notify is nil — scheduler runs in the worker pod and re-syncs from
+		// DB on its own ticker, so we don't need cross-process notification.
+		automationsHandler := handlers.NewAutomations(deps.Automations, nil)
 		api.GET("/automations", automationsHandler.List)
 		api.POST("/automations", automationsHandler.Create)
 		api.GET("/automations/:id", automationsHandler.Get)

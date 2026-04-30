@@ -5,7 +5,10 @@ image:
   pullSecrets: []
 
 server:
-  replicaCount: 1
+  # Server pods are fully stateless: no scheduler, no in-memory queue, no
+  # session state. Scale freely. Rolling update: maxSurge=1 maxUnavailable=0
+  # so requests in flight always have a healthy pod to land on.
+  replicaCount: 2
   resources:
     requests:
       cpu: 100m

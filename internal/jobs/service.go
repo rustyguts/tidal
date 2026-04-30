@@ -142,6 +142,16 @@ func (s *Service) ListLogs(ctx context.Context, id domain.JobID, fromSeq int64, 
 	return s.repo.listLogs(ctx, id, fromSeq, limit)
 }
 
+// IsCancelRequested reports whether the user asked the dispatcher to stop
+// the job. Used by k8s.Dispatcher's watch loop.
+func (s *Service) IsCancelRequested(ctx context.Context, id domain.JobID) (bool, error) {
+	j, err := s.repo.get(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	return j.Status == domain.JobCancelling || j.Status == domain.JobCancelled, nil
+}
+
 // HardDelete removes the job row entirely. job_logs cascade. Caller must
 // confirm the job is in a terminal state — running jobs should be cancelled
 // first via Cancel.
@@ -163,11 +173,10 @@ func (s *Service) Cancel(ctx context.Context, id domain.JobID) error {
 		return err
 	}
 	s.publishStatus(id, domain.JobCancelling, "")
-	if s.queue != nil {
-		if err := s.queue.CancelProcessing(j.AsynqID); err != nil {
-			log.Warn().Err(err).Str("job", id.String()).Msg("cancel processing")
-		}
-	}
+	// The dispatcher's watch loop polls IsCancelRequested and acts on the
+	// status flag; we deliberately do NOT call asynq.CancelProcessing here
+	// so a dispatcher restart can re-attach without losing the user's intent.
+	_ = j
 	return nil
 }
 
