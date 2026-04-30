@@ -54,6 +54,10 @@ type Config struct {
 	JobLimitCPU      string `envconfig:"DISPATCHER_JOB_LIMIT_CPU"`
 	JobLimitMemory   string `envconfig:"DISPATCHER_JOB_LIMIT_MEMORY"`
 
+	// Name of the K8s Secret containing the callback-secret key. Mounted as
+	// TIDAL_CALLBACK_SECRET env into per-job pods.
+	JobCallbackSecretRef string `envconfig:"DISPATCHER_CALLBACK_SECRET_NAME" default:"tidal-callback"`
+
 	ServerInternalURL string `envconfig:"SERVER_INTERNAL_URL" default:"http://tidal-server.default.svc.cluster.local:8080"`
 
 	// Worker callback auth

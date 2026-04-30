@@ -94,7 +94,7 @@ func buildRunner(cfg config.Config, jobSvc *jobs.Service) (worker.Runner, error)
 			ImagePullPolicy:   corev1.PullIfNotPresent,
 			ServiceAccount:    cfg.JobServiceAccount,
 			ServerInternalURL: cfg.ServerInternalURL,
-			CallbackSecretRef: "tidal-callback-secret",
+			CallbackSecretRef: cfg.JobCallbackSecretRef,
 			MediaPVC:          cfg.JobMediaPVC,
 			MediaHostPath:     cfg.JobMediaHostPath,
 			MediaMountPath:    cfg.JobMediaMountPath,
