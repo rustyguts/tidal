@@ -142,6 +142,13 @@ func (s *Service) ListLogs(ctx context.Context, id domain.JobID, fromSeq int64, 
 	return s.repo.listLogs(ctx, id, fromSeq, limit)
 }
 
+// HardDelete removes the job row entirely. job_logs cascade. Caller must
+// confirm the job is in a terminal state — running jobs should be cancelled
+// first via Cancel.
+func (s *Service) HardDelete(ctx context.Context, id domain.JobID) error {
+	return s.repo.hardDelete(ctx, id)
+}
+
 // Cancel marks the job as cancelling and signals the asynq task. The worker
 // observes ctx.Done and finishes via Cancelled.
 func (s *Service) Cancel(ctx context.Context, id domain.JobID) error {

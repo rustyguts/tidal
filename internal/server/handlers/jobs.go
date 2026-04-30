@@ -88,12 +88,26 @@ func (h *Jobs) Create(c echo.Context) error {
 	return c.JSON(http.StatusCreated, j)
 }
 
+// Cancel cancels a running job, or hard-deletes the row if the job is in a
+// terminal state (succeeded/failed/cancelled). Lets the UI offer one button
+// per row whose meaning depends on status.
 func (h *Jobs) Cancel(c echo.Context) error {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
-	if err := h.svc.Cancel(c.Request().Context(), id); err != nil {
+	ctx := c.Request().Context()
+	j, err := h.svc.Get(ctx, id)
+	if err != nil {
+		return mapJobErr(err)
+	}
+	if j.Status.Terminal() {
+		if err := h.svc.HardDelete(ctx, id); err != nil {
+			return mapJobErr(err)
+		}
+		return c.NoContent(http.StatusNoContent)
+	}
+	if err := h.svc.Cancel(ctx, id); err != nil {
 		return mapJobErr(err)
 	}
 	return c.NoContent(http.StatusNoContent)

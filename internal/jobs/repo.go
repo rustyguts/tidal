@@ -98,6 +98,17 @@ func (r *repo) setAsynqID(ctx context.Context, id domain.JobID, asynqID string) 
 	return err
 }
 
+func (r *repo) hardDelete(ctx context.Context, id domain.JobID) error {
+	tag, err := r.pool.Exec(ctx, "DELETE FROM jobs WHERE id = $1", id)
+	if err != nil {
+		return fmt.Errorf("delete job: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *repo) updateStatus(ctx context.Context, id domain.JobID, status domain.JobStatus, errMsg string, finished bool) error {
 	q := "UPDATE jobs SET status = $2, error = $3"
 	args := []any{id, string(status), errMsg}
