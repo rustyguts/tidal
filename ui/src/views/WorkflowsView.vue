@@ -46,9 +46,10 @@ async function toggle(id: string, current: boolean) {
 	<div class="space-y-6">
 		<div class="flex flex-wrap items-center justify-between gap-3">
 			<p class="max-w-prose text-sm text-base-content/60">
-				Workflows define a trigger and the actions that follow. v1 ships
+				Workflows define a trigger and the actions that follow. Currently
+				supports
 				<code class="font-mono">file_created</code> +
-				<code class="font-mono">enqueue_transcode</code>; more in v2.
+				<code class="font-mono">enqueue_transcode</code>.
 			</p>
 			<Button @click="router.push('/workflows/new')">+ New workflow</Button>
 		</div>

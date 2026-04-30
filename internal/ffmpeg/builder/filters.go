@@ -76,8 +76,8 @@ func renderChain(chain []domain.FilterStep) string {
 func renderFilter(step domain.FilterStep) string {
 	// scale with only w+h: render positionally so the output matches the
 	// idiomatic ffmpeg form (scale=W:H) rather than the named form
-	// (scale=w=W:h=H). Both are valid; the positional form is what the
-	// previous V1 builder emitted, so this preserves backward compat.
+	// (scale=w=W:h=H). Both are valid; positional is the more common
+	// hand-written form.
 	if step.Name == "scale" && len(step.Args) > 0 && len(step.Args) <= 2 {
 		w, hasW := step.Args["w"]
 		h, hasH := step.Args["h"]

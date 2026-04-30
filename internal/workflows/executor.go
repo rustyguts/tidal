@@ -14,7 +14,7 @@ import (
 )
 
 // Executor runs the configured actions of a workflow against a single trigger
-// event. v1 supports a single `enqueue_transcode` action per workflow.
+// event. Currently only `enqueue_transcode` is supported, one per workflow.
 type Executor struct {
 	wf   *Service
 	jobs *jobs.Service

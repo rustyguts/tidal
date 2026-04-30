@@ -7,10 +7,9 @@ import (
 	"github.com/rustyguts/tidal/internal/domain"
 )
 
-// V1 BuildArgs/RunInput were removed when the package switched to V2-only
-// composition (see internal/ffmpeg/builder). Argv assembly is exercised in
-// detail by builder/builder_test.go and builder_extra_test.go; this file
-// covers parsers and stream helpers that live next to the runner.
+// Argv assembly is exercised in detail by builder/builder_test.go and
+// builder_extra_test.go; this file covers parsers and stream helpers that
+// live next to the runner.
 
 func TestParseBitrate(t *testing.T) {
 	tests := []struct {
@@ -181,7 +180,7 @@ func TestEnsureOutputDir_createsDir(t *testing.T) {
 	}
 }
 
-func TestRunV2_validatesOutputDir(t *testing.T) {
+func TestRun_validatesOutputDir(t *testing.T) {
 	// Pass an unwritable parent so ensureOutputDir reports an error path.
 	// Skip on non-POSIX where /proc may not exist.
 	if err := ensureOutputDir("/proc/1/clearly-not-writable/x"); err == nil {

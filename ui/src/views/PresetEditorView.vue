@@ -57,8 +57,7 @@ onMounted(async () => {
 			description.value = p.description
 			builtin.value = p.builtin
 			// Merge against blank to fill missing nested keys when the server
-			// returns a partial spec (e.g. legacy v1 jsonb that hasn't been
-			// upgraded server-side).
+			// returns a partial spec.
 			const base = blankSpec()
 			const merged: PresetSpec = {
 				...base,

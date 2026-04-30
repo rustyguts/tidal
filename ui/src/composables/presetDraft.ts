@@ -1,5 +1,5 @@
 import type { PresetSpec } from '@/api/types'
-// blankSpec returns a sensible default V2 spec for a brand-new preset. Saves
+// blankSpec returns a sensible default spec for a brand-new preset. Saves
 // the editor from a screenful of empty fields when the user clicks "New".
 export function blankSpec(): PresetSpec {
 	return {

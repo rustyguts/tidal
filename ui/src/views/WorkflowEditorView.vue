@@ -131,7 +131,6 @@ const TEMPLATE_VARS = ['{{path}}', '{{dir}}', '{{filename}}', '{{stem}}', '{{ext
 						<select v-model="form.trigger.type" class="select select-bordered w-full" disabled>
 							<option value="file_created">file_created</option>
 						</select>
-						<p class="text-xs text-base-content/50">More trigger types in v2.</p>
 					</fieldset>
 					<fieldset class="fieldset">
 						<legend class="fieldset-legend">Watch directory</legend>

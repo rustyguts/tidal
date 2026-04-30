@@ -40,8 +40,8 @@ func TestDefault_lookups(t *testing.T) {
 }
 
 // Every video codec used by the seeded builtins (internal/presets/seed.go) must
-// appear in the catalog so V2 upgrade + validation succeed without manual
-// catalog edits when builtins change.
+// appear in the catalog so validation succeeds without manual catalog edits
+// when builtins change.
 func TestDefault_coversBuiltinCodecs(t *testing.T) {
 	c := Default()
 	want := []string{"libx264", "libx265", "libsvtav1", "copy"}

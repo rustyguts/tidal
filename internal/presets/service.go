@@ -26,7 +26,7 @@ type Service struct {
 	validateOpts domain.ValidateOpts
 }
 
-// New constructs the preset service. Catalog drives V2 schema validation;
+// New constructs the preset service. Catalog drives spec validation;
 // pass catalog.Default() unless tests need a tailored fixture. ValidateOpts
 // lets the caller flip raw-extras into permissive mode (default: strict).
 func New(pool *pgxpool.Pool, cat *catalog.Catalog, opts domain.ValidateOpts) *Service {

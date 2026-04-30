@@ -40,8 +40,9 @@ func (w Workflow) StableThreshold() time.Duration {
 	return time.Duration(w.StableThresholdMs) * time.Millisecond
 }
 
-// Trigger is a tagged union — `Type` discriminates fields. v1 supports only
-// `file_created`. JSON round-trips via custom Marshaler/Unmarshaler.
+// Trigger is a tagged union — `Type` discriminates fields. Currently only
+// `file_created` is supported. JSON round-trips via custom
+// Marshaler/Unmarshaler.
 type Trigger struct {
 	Type     string `json:"type"`
 	WatchDir string `json:"watchDir,omitempty"`
@@ -67,8 +68,8 @@ func (t Trigger) Validate() error {
 	}
 }
 
-// Action is a tagged union — `Type` discriminates the per-type fields. v1
-// supports only `enqueue_transcode`.
+// Action is a tagged union — `Type` discriminates the per-type fields.
+// Currently only `enqueue_transcode` is supported.
 type Action struct {
 	Type           string `json:"type"`
 	PresetID       string `json:"presetId,omitempty"`

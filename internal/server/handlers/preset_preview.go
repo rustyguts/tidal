@@ -36,8 +36,7 @@ type previewResponse struct {
 	Argv     []string `json:"argv"`
 	Errors   []string `json:"errors,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
-	// Spec is the spec after V1→V2 upgrade so the UI sees the canonical V2
-	// shape it should round-trip on save.
+	// Spec echoes back the parsed spec so the UI can round-trip on save.
 	Spec domain.PresetSpec `json:"spec"`
 }
 
@@ -46,14 +45,14 @@ func (h *PresetPreview) Post(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || len(req.Spec) == 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, "spec required")
 	}
-	v2, err := domain.UnmarshalSpec(req.Spec)
+	spec, err := domain.UnmarshalSpec(req.Spec)
 	if err != nil {
 		return c.JSON(http.StatusOK, previewResponse{
 			Errors: []string{"spec parse: " + err.Error()},
 		})
 	}
-	resp := previewResponse{Spec: v2}
-	if err := domain.Validate(v2, h.cat, h.opts); err != nil {
+	resp := previewResponse{Spec: spec}
+	if err := domain.Validate(spec, h.cat, h.opts); err != nil {
 		resp.Errors = append(resp.Errors, err.Error())
 	}
 
@@ -68,7 +67,7 @@ func (h *PresetPreview) Post(c echo.Context) error {
 	args, buildErr := builder.Compose(builder.Context{
 		InputPath:  in,
 		OutputPath: out,
-	}, v2)
+	}, spec)
 	if buildErr != nil {
 		resp.Errors = append(resp.Errors, "compose: "+buildErr.Error())
 	}
